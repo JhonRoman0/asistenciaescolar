@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Roles - Asistencia Escolar</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #007bff; color: white; }
+
+        /* Botones */
+        .btn-edit { background-color: #ffc107; color: black; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-delete { background-color: #dc3545; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; margin-left: 5px; }
+        .btn-delete:hover { background-color: #c82333; }
+
+        /* Estilos del Modal */
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 5% auto; padding: 20px; border-radius: 8px; width: 400px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-save { background-color: #28a745; color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-cancel { margin-top: 10px; width: 100%; border: none; background: none; cursor: pointer; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Roles del Sistema</h2>
+    <div style="display: flex; justify-content: space-between;">
+        <a href="dashboard.html">← Volver al Panel</a>
+        <a href="registro_rol.html" style="color: #007bff; font-weight: bold;">+ Crear Nuevo Rol</a>
+    </div>
+
+    <table id="rolesTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre del Rol</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody><!-- JS --></tbody>
+    </table>
+</div>
+
+<!-- MODAL PARA EDITAR ROL -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3>Editar Rol</h3>
+        <form id="editForm">
+            <input type="hidden" id="edit-id">
+            <div class="form-group">
+                <label>Nombre del Rol:</label>
+                <input type="text" id="edit-nombre" required>
+            </div>
+            <div class="form-group">
+                <label>Descripción:</label>
+                <textarea id="edit-descripcion" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Estado:</label>
+                <select id="edit-estado">
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-save">Actualizar Rol</button>
+            <button type="button" onclick="cerrarModal()" class="btn-cancel">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:8080/api/roles';
+
+    async function cargarRoles() {
+        try {
+            const response = await fetch(API_URL); // Llama al GET de RolesController
+            const roles = await response.json();
+            const tbody = document.querySelector('#rolesTable tbody');
+            tbody.innerHTML = '';
+
+            roles.forEach(r => {
+                // El backend ya filtra los estado != 2 en el ServiceRoles que hicimos
+                const fila = `
+                    <tr>
+                        <td>${r.idRoles}</td>
+                        <td><strong>${r.nombreRol}</strong></td>
+                        <td>${r.descripcion}</td>
+                        <td>
+                            <span style="color: ${r.estado === 1 ? 'green' : 'red'}">
+                                ${r.estado === 1 ? 'Activo' : 'Inactivo'}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick='prepararEdicion(${JSON.stringify(r)})' class="btn-edit">Editar</button>
+                            <button onclick="eliminarRol(${r.idRoles})" class="btn-delete">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += fila;
+            });
+        } catch (error) {
+            console.error("Error al cargar roles:", error);
+        }
+    }
+
+    function prepararEdicion(rol) {
+        document.getElementById('edit-id').value = rol.idRoles;
+        document.getElementById('edit-nombre').value = rol.nombreRol;
+        document.getElementById('edit-descripcion').value = rol.descripcion;
+        document.getElementById('edit-estado').value = rol.estado;
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function cerrarModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    document.getElementById('editForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-id').value;
+        const datos = {
+            nombreRol: document.getElementById('edit-nombre').value,
+            descripcion: document.getElementById('edit-descripcion').value,
+            estado: parseInt(document.getElementById('edit-estado').value)
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+
+            if (response.ok) {
+                alert("Rol actualizado correctamente");
+                cerrarModal();
+                cargarRoles();
+            }
+        } catch (error) { console.error("Error:", error); }
+    };
+
+    async function eliminarRol(id) {
+        if (confirm("¿Seguro que deseas eliminar este rol? (Pasará a estado 2)")) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert("Rol eliminado (Lógicamente)");
+                    cargarRoles();
+                }
+            } catch (error) { console.error("Error:", error); }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarRoles);
+
+    // Cerrar modal al hacer clic fuera
+    window.onclick = (event) => {
+        if (event.target == document.getElementById('editModal')) cerrarModal();
+    }
+</script>
+</body>
+</html>

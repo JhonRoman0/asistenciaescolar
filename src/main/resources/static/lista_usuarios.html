@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Usuarios</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #007bff; color: white; }
+
+        /* Botones */
+        .btn-edit { background-color: #ffc107; color: black; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        .btn-delete { background-color: #dc3545; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; margin-left: 5px; }
+        .btn-delete:hover { background-color: #c82333; }
+
+        /* Estilos del Modal */
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 2% auto; padding: 20px; border-radius: 8px; width: 450px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-save { background-color: #28a745; color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-cancel { margin-top: 10px; width: 100%; border: none; background: none; cursor: pointer; color: #666; }
+
+        /* Badge para roles */
+        .badge-role { background-color: #e9ecef; border: 1px solid #dee2e6; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 2px; }
+
+        /* Contenedor de roles en modal */
+        .roles-selector { border: 1px solid #ccc; padding: 10px; border-radius: 4px; max-height: 120px; overflow-y: auto; background: #fff; }
+        .role-option { display: flex; align-items: center; margin-bottom: 5px; font-weight: normal; }
+        .role-option input { width: auto; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Usuarios Registrados</h2>
+    <div style="display: flex; justify-content: space-between;">
+        <a href="dashboard.html">← Volver al Panel</a>
+        <a href="registro_usuario.html" style="color: #007bff; font-weight: bold;">+ Registrar Nuevo Usuario</a>
+    </div>
+
+    <table id="usuariosTable">
+        <thead>
+        <tr>
+            <th>Código</th>
+            <th>Nombre Completo</th>
+            <th>Email</th>
+            <th>Roles</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody><!-- Se llena con JS --></tbody>
+    </table>
+</div>
+
+<!-- MODAL PARA EDITAR -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3>Editar Usuario</h3>
+        <form id="editForm">
+            <input type="hidden" id="edit-id">
+
+            <div class="form-group">
+                <label>Nombre:</label>
+                <input type="text" id="edit-nombre" required>
+            </div>
+
+            <div class="form-group">
+                <label>Apellido Paterno:</label>
+                <input type="text" id="edit-paterno" required>
+            </div>
+
+            <div class="form-group">
+                <label>Apellido Materno:</label>
+                <input type="text" id="edit-materno">
+            </div>
+
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="edit-email" required>
+            </div>
+
+            <div class="form-group">
+                <label>Estado:</label>
+                <select id="edit-estado">
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+            </div>
+
+            <!-- SECCIÓN DE ROLES DINÁMICA -->
+            <div class="form-group">
+                <label>Asignar Roles:</label>
+                <div id="roles-container" class="roles-selector">
+                    <!-- Checkboxes de roles cargados por JS -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Nueva Contraseña (dejar en blanco para no cambiar):</label>
+                <input type="password" id="edit-pass">
+            </div>
+
+            <button type="submit" class="btn-save">Guardar Cambios</button>
+            <button type="button" onclick="cerrarModal()" class="btn-cancel">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:8080/api/usuarios';
+    const ROLES_URL = 'http://localhost:8080/api/roles';
+    let todosLosRoles = [];
+
+    // Cargar todos los roles del sistema al iniciar
+    async function cargarRolesSistema() {
+    try {
+        // Quitamos el "/listar" para que coincida con tu @GetMapping del controlador
+        const response = await fetch('http://localhost:8080/api/roles');
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+
+        todosLosRoles = await response.json();
+        console.log("Roles cargados:", todosLosRoles);
+    } catch (error) {
+        console.error("Error al cargar roles del sistema:", error);
+    }
+}
+
+    async function cargarUsuarios() {
+        try {
+            const response = await fetch(`${API_URL}/listar`);
+            const usuarios = await response.json();
+            const tbody = document.querySelector('#usuariosTable tbody');
+            tbody.innerHTML = '';
+
+            usuarios.forEach(u => {
+                if (u.estado !== 2) {
+                    const rolesHtml = u.usuarioRoles && u.usuarioRoles.length > 0
+                        ? u.usuarioRoles.map(ur => `<span class="badge-role">${ur.rol.nombreRol}</span>`).join(' ')
+                        : '<span style="color: gray; font-style: italic;">Sin rol</span>';
+
+                    const fila = `
+                        <tr>
+                            <td><strong>${u.codigUsuario}</strong></td>
+                            <td>${u.nombre} ${u.apellidoPaterno} ${u.apellidoMaterno || ''}</td>
+                            <td>${u.email}</td>
+                            <td>${rolesHtml}</td>
+                            <td>
+                                <span style="color: ${u.estado === 1 ? 'green' : 'red'}">
+                                    ${u.estado === 1 ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </td>
+                            <td>
+                                <button onclick='prepararEdicion(${JSON.stringify(u)})' class="btn-edit">Editar</button>
+                                <button onclick='eliminarUsuario(${u.idUsuario})' class="btn-delete">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += fila;
+                }
+            });
+        } catch (error) {
+            console.error("Error al cargar usuarios:", error);
+        }
+    }
+
+    function prepararEdicion(usuario) {
+        document.getElementById('edit-id').value = usuario.idUsuario;
+        document.getElementById('edit-nombre').value = usuario.nombre;
+        document.getElementById('edit-paterno').value = usuario.apellidoPaterno;
+        document.getElementById('edit-materno').value = usuario.apellidoMaterno || '';
+        document.getElementById('edit-email').value = usuario.email;
+        document.getElementById('edit-estado').value = usuario.estado;
+        document.getElementById('edit-pass').value = '';
+
+        // Renderizar checkboxes de roles y marcar los que el usuario ya tiene
+        const container = document.getElementById('roles-container');
+        container.innerHTML = '';
+
+        todosLosRoles.forEach(rol => {
+            const tieneRol = usuario.usuarioRoles.some(ur => ur.rol.idRoles === rol.idRoles);
+            container.innerHTML += `
+                <label class="role-option">
+                    <input type="checkbox" value="${rol.idRoles}" class="rol-checkbox" ${tieneRol ? 'checked' : ''}>
+                    ${rol.nombreRol}
+                </label>
+            `;
+        });
+
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function cerrarModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    document.getElementById('editForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-id').value;
+
+        // Capturar IDs de roles marcados en los checkboxes
+        const rolesSeleccionados = Array.from(document.querySelectorAll('.rol-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+
+        const datos = {
+            idUsuario: id,
+            nombre: document.getElementById('edit-nombre').value,
+            apellidoPaterno: document.getElementById('edit-paterno').value,
+            apellidoMaterno: document.getElementById('edit-materno').value,
+            email: document.getElementById('edit-email').value,
+            estado: parseInt(document.getElementById('edit-estado').value),
+            contraseña: document.getElementById('edit-pass').value || null,
+            rolesIds: rolesSeleccionados // Enviamos la nueva lista
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+
+            if (response.ok) {
+                alert("Usuario actualizado con éxito");
+                cerrarModal();
+                cargarUsuarios();
+            } else {
+                alert("Error al actualizar usuario");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    };
+
+    async function eliminarUsuario(id) {
+        if (confirm("¿Estás seguro de que deseas eliminar este usuario?")) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert("Usuario eliminado correctamente");
+                    cargarUsuarios();
+                } else {
+                    alert("Error: No tienes permisos");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+    }
+
+    // Al cargar la página, traemos los usuarios y los roles disponibles
+    document.addEventListener('DOMContentLoaded', async () => {
+        await cargarRolesSistema();
+        await cargarUsuarios();
+    });
+
+    window.onclick = (event) => {
+        if (event.target == document.getElementById('editModal')) cerrarModal();
+    }
+</script>
+</body>
+</html>
