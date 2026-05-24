@@ -31,7 +31,7 @@ public class SecurityConfig{
                                 "/js/**"
                         ).permitAll()
 
-                        // 2. Endpoints de Usuarios y Roles
+                        // 2. Endpoints de Usuarios
                         .requestMatchers(HttpMethod.GET, "/api/roles","/api/roles/**").permitAll()
                         .requestMatchers("/api/usuarios/roles-disponibles").permitAll()
                         .requestMatchers("/api/usuarios/listar").permitAll()
@@ -39,7 +39,12 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
 
-                        // 3. NUEVO: Endpoints de Alumnos (Permisos para el CRUD)
+                        // 3. Endpoints de Roles
+                        .requestMatchers(HttpMethod.POST, "/api/roles").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/roles/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/roles/**").permitAll()
+
+                        // 4. NUEVO: Endpoints de Alumnos (Permisos para el CRUD)
                         // Permitimos GET para cargar selects (grados/secciones) y la tabla
                         .requestMatchers(HttpMethod.GET, "/api/alumnos/**").permitAll()
                         // Permitimos POST para registrar alumnos
@@ -47,7 +52,12 @@ public class SecurityConfig{
                         // Permitimos PUT para actualizar
                         .requestMatchers(HttpMethod.PUT, "/api/alumnos/**").permitAll()
 
-                        // 4. Restricciones específicas
+                        // 5. Enpoints de Modulos
+                        .requestMatchers(HttpMethod.GET,"/api/modulos/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/modulos/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT,"/api/modulos/**").permitAll()
+
+                        // 5. Restricciones específicas
                         .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("admin")
                         .requestMatchers("/api/usuarios/perfil").authenticated()
 

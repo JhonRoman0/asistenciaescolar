@@ -2,6 +2,7 @@ package asistenciaescolar.asistenciaescolar.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.Set;
 
 import java.time.LocalDate;
 
@@ -23,5 +24,8 @@ public class Roles {
     @Column(nullable = false)
     private LocalDate fechaCreacion;
     @Column(nullable = false,length = 7)
-    private String Color="#4361EE";
+    private String Color;
+
+    @OneToMany(mappedBy = "rol", fetch = FetchType.EAGER)
+    private Set<RolesModulo> rolesModulos;
 }

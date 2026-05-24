@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +17,7 @@ public class RolesModulo {
 
     @ManyToOne
     @JoinColumn(name = "idRoles",nullable = false)
+    @JsonIgnore
     private Roles rol;
 
     @ManyToOne

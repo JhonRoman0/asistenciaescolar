@@ -16,6 +16,6 @@ public class AuthController {
 
     @GetMapping("/dashboard")
     public String dashboard() {
-        return "redirect:/dashboard"; // Crea un dashboard.html sencillo para probar
+        return "redirect:/dashboard.html"; // Crea un dashboard.html sencillo para probar
     }
 }

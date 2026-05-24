@@ -1,8 +1,13 @@
 package asistenciaescolar.asistenciaescolar.Service;
 
 import asistenciaescolar.asistenciaescolar.Dto.dtoRoles;
+import asistenciaescolar.asistenciaescolar.Model.Modulo;
 import asistenciaescolar.asistenciaescolar.Model.Roles;
+import asistenciaescolar.asistenciaescolar.Model.RolesModulo;
+import asistenciaescolar.asistenciaescolar.Repository.RepositoryModulo;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryRoles;
+import asistenciaescolar.asistenciaescolar.Repository.RepositoryRolesModulo;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
@@ -15,6 +20,12 @@ public class RolesService {
     @Autowired
     private RepositoryRoles repositoryRoles;
 
+    @Autowired
+    private RepositoryRolesModulo repositoryRolesModulo;
+
+    @Autowired
+    private RepositoryModulo repositoryModulo;
+
     // Listar solo los roles que no están eliminados (estado != 2)
     public List<Roles> listarTodos() {
         return repositoryRoles.findAll().stream()
@@ -22,14 +33,33 @@ public class RolesService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public Roles crearRol(dtoRoles dto) {
         Roles rol = new Roles();
         rol.setNombreRol(dto.getNombreRol());
         rol.setEstado((short) 1); // 1 = Activo por defecto
         rol.setFechaCreacion(LocalDate.now());
-        rol.setColor(dto.getColor());
+        // Controlamos que si el color llega nulo o vacío, use el azul por defecto del DTO
+        if (dto.getColor() == null || dto.getColor().trim().isEmpty()) {
+            rol.setColor("#4361EE");
+        } else {
+            rol.setColor(dto.getColor());
+        }
 
-        return repositoryRoles.save(rol);
+        Roles rolGuardado = repositoryRoles.save(rol);
+        if (dto.getIdModulos() != null && !dto.getIdModulos().isEmpty()) {
+            for (Integer idModulo : dto.getIdModulos()) {
+                Modulo modulo = repositoryModulo.findById(idModulo)
+                        .orElseThrow(() -> new RuntimeException("Módulo no encontrado con ID: " + idModulo));
+
+                RolesModulo relacion = new RolesModulo();
+                relacion.setRol(rolGuardado);
+                relacion.setModulo(modulo);
+                repositoryRolesModulo.save(relacion);
+            }
+        }
+
+        return rolGuardado;
     }
 
     // Método para Actualizar
@@ -45,9 +75,27 @@ public class RolesService {
         if (dto.getColor()!=null){
             rol.setColor(dto.getColor());
         }
+        Roles rolActualizado = repositoryRoles.save(rol);
+
+        // 2. Actualizar los módulos: Enfoque "Limpiar y volver a crear"
+        if (dto.getIdModulos() != null) {
+            // Borramos los accesos antiguos que tenía este rol
+            repositoryRolesModulo.deleteByRolIdRoles(id);
+
+            // Insertamos los nuevos accesos que vienen del formulario
+            for (Integer idModulo : dto.getIdModulos()) {
+                Modulo modulo = repositoryModulo.findById(idModulo)
+                        .orElseThrow(() -> new RuntimeException("Módulo no encontrado con ID: " + idModulo));
+
+                RolesModulo relacion = new RolesModulo();
+                relacion.setRol(rolActualizado);
+                relacion.setModulo(modulo);
+                repositoryRolesModulo.save(relacion);
+            }
+        }
 
 
-        return repositoryRoles.save(rol);
+        return rolActualizado;
     }
 
     // Método para Eliminación Lógica (Estado 2)

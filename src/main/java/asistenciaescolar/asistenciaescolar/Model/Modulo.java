@@ -17,8 +17,6 @@ public class Modulo {
     private Integer idModulo;
     @Column(nullable = false, length = 20)
     private String nombre;
-    @Column(nullable = false, length = 10)
-    private String ruta;
     @Column(nullable = false)
     private Short estado;
     @Column(nullable = false)
