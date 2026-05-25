@@ -28,4 +28,36 @@
     }
     .btn-listar { background-color: #007bff; }
     .btn-listar:hover { background-color: #0069d9; }
+
 </style>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Al cargar la página, le pedimos al backend los módulos asignados en el login
+        fetch('/api/usuarios/perfil-sesion')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("No hay sesión activa");
+                }
+                return response.json();
+            })
+            .then(data => {
+                // ¡Aquí tienes toda la información estructurada que querías en la consola!
+                console.log("Perfil completo del usuario:", data);
+
+                // Ejemplo rápido: Mostrar el nombre en un saludo
+                // document.getElementById("nombreUsuario").innerText = data.nombre;
+
+                // Recorrer los roles y módulos del JSON para armar la barra de navegación dinámica
+                data.roles.forEach(rol => {
+                    rol.modulos.forEach(modulo => {
+                        console.log("Generando menú para el módulo: " + modulo.nombre);
+                        // Aquí metes la lógica visual para inyectar botones en el HTML usando JS (DOM)
+                    });
+                });
+            })
+            .catch(error => {
+                console.error("Acceso denegado:", error);
+                window.location.href = "/login"; // Si intentan entrar sin loguearse, los saca al login
+            });
+    });
+</script>

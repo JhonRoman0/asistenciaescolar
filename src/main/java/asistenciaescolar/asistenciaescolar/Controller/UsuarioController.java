@@ -3,6 +3,7 @@ package asistenciaescolar.asistenciaescolar.Controller;
 import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryRoles;
 import asistenciaescolar.asistenciaescolar.Service.UsuarioService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,8 @@ import asistenciaescolar.asistenciaescolar.Model.Usuario;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryUsuario;
 import org.springframework.security.core.Authentication;
 import java.util.List;
+import java.util.Map;
+
 import asistenciaescolar.asistenciaescolar.Dto.dtoUsuario;
 
 @RestController
@@ -103,5 +106,17 @@ public class UsuarioController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
         }
+    }
+
+    @GetMapping("/perfil-sesion")
+    public ResponseEntity<Map<String, Object>> obtenerPerfilDesdeSesion(HttpSession session) {
+        // Recuperamos el mapa que guardamos en el Login de forma segura
+        Map<String, Object> perfil = (Map<String, Object>) session.getAttribute("PERFIL_USUARIO");
+
+        if (perfil == null) {
+            return ResponseEntity.status(401).build(); // Si no hay sesión, responde No Autorizado
+        }
+
+        return ResponseEntity.ok(perfil);
     }
 }
