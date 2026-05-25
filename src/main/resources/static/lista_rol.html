@@ -39,7 +39,6 @@
         <tr>
             <th>ID</th>
             <th>Nombre del Rol</th>
-            <th>Descripción</th>
             <th>Estado</th>
             <th>Acciones</th>
         </tr>
@@ -57,10 +56,6 @@
             <div class="form-group">
                 <label>Nombre del Rol:</label>
                 <input type="text" id="edit-nombre" required>
-            </div>
-            <div class="form-group">
-                <label>Descripción:</label>
-                <textarea id="edit-descripcion" required></textarea>
             </div>
             <div class="form-group">
                 <label>Estado:</label>
@@ -113,7 +108,6 @@
     function prepararEdicion(rol) {
         document.getElementById('edit-id').value = rol.idRoles;
         document.getElementById('edit-nombre').value = rol.nombreRol;
-        document.getElementById('edit-descripcion').value = rol.descripcion;
         document.getElementById('edit-estado').value = rol.estado;
         document.getElementById('editModal').style.display = 'block';
     }
@@ -127,7 +121,6 @@
         const id = document.getElementById('edit-id').value;
         const datos = {
             nombreRol: document.getElementById('edit-nombre').value,
-            descripcion: document.getElementById('edit-descripcion').value,
             estado: parseInt(document.getElementById('edit-estado').value)
         };
 

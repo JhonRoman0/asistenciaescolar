@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Repository;
 
+import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Model.Usuario;
 import asistenciaescolar.asistenciaescolar.Model.UsuarioRoles;
 import jakarta.transaction.Transactional;
@@ -12,4 +13,6 @@ public interface RepositoryUsuarioRoles extends JpaRepository<UsuarioRoles,Integ
     @Modifying
     @Transactional
     void deleteByUsuario(Usuario usuario);
+
+    long countByRol(Roles rol);
 }

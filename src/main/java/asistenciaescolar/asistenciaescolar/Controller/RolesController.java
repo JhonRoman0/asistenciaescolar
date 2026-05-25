@@ -42,9 +42,14 @@ public class RolesController {
     public ResponseEntity<String> eliminar(@PathVariable Integer id) {
         try {
             rolesService.eliminarLogico(id);
-            return ResponseEntity.ok("Rol desactivado");
+            return ResponseEntity.ok("Rol desactivado con éxito");
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Rol no encontrado");
+            // CORRECCIÓN: Si el mensaje contiene la palabra 'No se puede', es por los usuarios asignados (Error 400 Bad Request)
+            if (e.getMessage().contains("No se puede")) {
+                return ResponseEntity.status(400).body(e.getMessage());
+            }
+            // Si es cualquier otro error, significa que realmente no se encontró el ID (Error 404)
+            return ResponseEntity.status(404).body(e.getMessage());
         }
     }
 }

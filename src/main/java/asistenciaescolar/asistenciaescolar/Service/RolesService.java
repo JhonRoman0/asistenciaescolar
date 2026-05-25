@@ -7,6 +7,7 @@ import asistenciaescolar.asistenciaescolar.Model.RolesModulo;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryModulo;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryRoles;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryRolesModulo;
+import asistenciaescolar.asistenciaescolar.Repository.RepositoryUsuarioRoles;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,9 @@ public class RolesService {
 
     @Autowired
     private RepositoryRolesModulo repositoryRolesModulo;
+
+    @Autowired
+    private RepositoryUsuarioRoles repositoryUsuarioRoles;
 
     @Autowired
     private RepositoryModulo repositoryModulo;
@@ -100,10 +104,20 @@ public class RolesService {
 
     // Método para Eliminación Lógica (Estado 2)
     public void eliminarLogico(Integer id) {
+        // Busca si el rol existe en la base de datos
         Roles rol = repositoryRoles.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rol no encontrado con ID: " + id));
 
-        rol.setEstado((short) 2); // Cambiamos a estado 2 para "eliminar" sin borrar de la DB
+        // VALIDACIÓN: Contamos cuántas filas usan este objeto Rol en la tabla intermedia
+        long cantidadUsuarios = repositoryUsuarioRoles.countByRol(rol);
+
+        if (cantidadUsuarios > 0) {
+            throw new RuntimeException("No se puede eliminar el rol '" + rol.getNombreRol() +
+                    "' porque tiene " + cantidadUsuarios + " usuario(s) asignado(s).");
+        }
+
+        // Si está libre de usuarios, hacemos el borrado lógico (Estado 2)
+        rol.setEstado((short) 2);
         repositoryRoles.save(rol);
     }
 }
