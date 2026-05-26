@@ -2,6 +2,7 @@ package asistenciaescolar.asistenciaescolar.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Table(name = "Alumno")
@@ -35,5 +36,8 @@ public class Alumno {
     @ManyToOne
     @JoinColumn(name = "idGrado", nullable = false)
     private Grado grado;
+
+    @OneToMany(mappedBy = "alumno", fetch = FetchType.EAGER)
+    private List<AlumnoApoderado> alumnoApoderados;
 
 }

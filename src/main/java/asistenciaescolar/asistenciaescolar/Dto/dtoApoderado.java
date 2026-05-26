@@ -4,9 +4,11 @@ import lombok.Data;
 
 @Data
 public class dtoApoderado {
+    private String dni;
     private String nombre;
     private String apellidoPaterno;
     private String apellidoMaterno;
-    private Short celular;
+    private Integer celular;
     private String email;
+    private Integer idApoderado;
 }

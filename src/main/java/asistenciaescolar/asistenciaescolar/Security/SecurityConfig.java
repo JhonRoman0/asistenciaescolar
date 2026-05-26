@@ -48,13 +48,12 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.PUT, "/api/roles/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/roles/**").permitAll()
 
-                        // 4. NUEVO: Endpoints de Alumnos (Permisos para el CRUD)
-                        // Permitimos GET para cargar selects (grados/secciones) y la tabla
-                        .requestMatchers(HttpMethod.GET, "/api/alumnos/**").permitAll()
-                        // Permitimos POST para registrar alumnos
-                        .requestMatchers(HttpMethod.POST, "/api/alumnos/**").permitAll()
-                        // Permitimos PUT para actualizar
-                        .requestMatchers(HttpMethod.PUT, "/api/alumnos/**").permitAll()
+                        // 4. NUEVO: Endpoints de Alumnos (Permisos explícitos para el CRUD)
+                        // Incluimos la ruta base exacta "/api/alumnos" y sus sub-rutas "/api/alumnos/**"
+                        .requestMatchers(HttpMethod.GET, "/api/alumnos", "/api/alumnos/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/alumnos", "/api/alumnos/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/alumnos", "/api/alumnos/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/alumnos", "/api/alumnos/**").permitAll()
 
                         // 5. Enpoints de Modulos
                         .requestMatchers(HttpMethod.GET,"/api/modulos/**").permitAll()

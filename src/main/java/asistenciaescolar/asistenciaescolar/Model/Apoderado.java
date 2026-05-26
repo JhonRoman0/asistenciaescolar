@@ -13,6 +13,8 @@ public class Apoderado {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idApoderado;
+    @Column(nullable = false, unique = true, length = 9)
+    private String dni;
     @Column(nullable = false, length = 20)
     private String nombre;
     @Column(nullable = false, length = 20)
@@ -20,7 +22,7 @@ public class Apoderado {
     @Column(nullable = false, length = 20)
     private String apellidoMaterno;
     @Column(nullable = false)
-    private Short celular;
+    private Integer celular;
     @Column(nullable = false, length = 50)
     private String email;
 }

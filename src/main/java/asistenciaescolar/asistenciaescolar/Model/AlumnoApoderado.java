@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +17,7 @@ public class AlumnoApoderado {
 
     @ManyToOne
     @JoinColumn(name = "idAlumno", nullable = false)
+    @JsonIgnoreProperties("alumnoApoderados")
     private Alumno alumno;
 
     @ManyToOne

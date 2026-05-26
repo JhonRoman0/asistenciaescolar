@@ -22,18 +22,18 @@ public class AlumnoController {
 
     //Llamamos a los alumnos por su Id.
     @GetMapping("/{id}")
-    public ResponseEntity<Alumno> obtenerPorId(@PathVariable Integer id) {
+    public ResponseEntity<dtoAlumno> obtenerPorId(@PathVariable Integer id) {
         return ResponseEntity.ok(alumnoService.obtenerPorId(id));
     }
 
     // LISTAR CON FILTROS (Para tu tabla con buscador y selects)
     @GetMapping
-    public ResponseEntity<List<Alumno>> listarAlumnos(
+    public ResponseEntity<List<dtoAlumno>> listarAlumnos(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) Integer idGrado,
             @RequestParam(required = false) Integer idSeccion,
             @RequestParam(required = false) Integer estado) {
-        return ResponseEntity.ok(alumnoService.listarConFiltros(nombre, idGrado, idSeccion, estado));
+        return ResponseEntity.ok(alumnoService.listarAlumnosConApoderados(nombre, idGrado, idSeccion, estado));
     }
 
     // REGISTRAR: El DTO viaja directo al Service
@@ -50,13 +50,13 @@ public class AlumnoController {
 
     // CARGA DE SELECTS (Para el Modal de Alumno)
     @GetMapping("/grados")
-    public List<Grado> obtenerGrados() {
-        return alumnoService.listarGrados();
+    public ResponseEntity<List<Grado>> obtenerGrados() {
+        return ResponseEntity.ok(alumnoService.listarGrados());
     }
 
     @GetMapping("/secciones")
-    public List<Seccion> obtenerSecciones() {
-        return alumnoService.listarSecciones();
+    public ResponseEntity<List<Seccion>> obtenerSecciones() {
+        return ResponseEntity.ok(alumnoService.listarSecciones());
     }
 
     @DeleteMapping("/{id}")
