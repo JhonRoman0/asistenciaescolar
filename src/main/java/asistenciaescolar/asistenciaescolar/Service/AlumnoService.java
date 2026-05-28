@@ -7,6 +7,7 @@ import asistenciaescolar.asistenciaescolar.Repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import java.util.List;
 
@@ -79,18 +80,20 @@ public class AlumnoService {
     }
 
     private String generarCodigoUnico() {
-        String nuevoCodigo;
+        String nuevoCodigoPlano;
+        String codigoHasheado;
         boolean existe;
         do {
-            // Ejemplo: ALU- seguido de 6 números aleatorios
             int numero = (int)(Math.random() * 900000) + 100000;
-            nuevoCodigo = "ALU" + numero;
+            nuevoCodigoPlano = "ALU" + numero;
 
-            // Verificamos en la BD que no exista ya ese código
-            existe = alumnoRepository.existsByCodigoUnico(nuevoCodigo);
+            // Hasheo nativo de Spring, no necesitas instalar nada en el pom.xml
+            codigoHasheado = DigestUtils.md5DigestAsHex(nuevoCodigoPlano.getBytes());
+
+            existe = alumnoRepository.existsByCodigoUnico(codigoHasheado);
         } while (existe);
 
-        return nuevoCodigo;
+        return codigoHasheado;
     }
 
     // 4. Lógica de mapeo común para evitar repetir código
@@ -177,9 +180,15 @@ public class AlumnoService {
                     apoderadoExistente.setApellidoMaterno(dtoAp.getApellidoMaterno());
                     apoderadoExistente.setCelular(dtoAp.getCelular());
                     apoderadoExistente.setEmail(dtoAp.getEmail());
-
-                    // 4. Guardamos los cambios
                     apoderadoRepository.save(apoderadoExistente);
+
+                    // Buscamos la relación intermedia existente entre este alumno y este apoderado
+                    AlumnoApoderado relacionIntermedia = alumnoApoderadoRepository.findByAlumnoAndApoderado(alumno, apoderadoExistente)
+                            .orElseThrow(() -> new RuntimeException("Relación alumno-apoderado no encontrada."));
+
+                    // Si el frontend mandó el valor, lo actualizamos (si viene null, por defecto false)
+                    relacionIntermedia.setEsPrincipal(dtoAp.getEsPrincipal() != null ? dtoAp.getEsPrincipal() : false);
+                    alumnoApoderadoRepository.save(relacionIntermedia);
                 }
             }
         }
@@ -188,12 +197,17 @@ public class AlumnoService {
         // CASO A: El frontend mandó una lista de IDs de apoderados que ya existen
         // =========================================================================
         if (dto.getIdsApoderados() != null && !dto.getIdsApoderados().isEmpty()) {
-            for (Integer idApoderado : dto.getIdsApoderados()) {
-                Apoderado apoderadoExistente = apoderadoRepository.findById(idApoderado)
-                        .orElseThrow(() -> new RuntimeException("El ID de apoderado " + idApoderado + " no existe."));
+            for (dtoApoderado dtoAp : dto.getIdsApoderados()) {
+                Apoderado apoderadoExistente = apoderadoRepository.findById(dtoAp.getIdApoderado())
+                        .orElseThrow(() -> new RuntimeException("El ID de apoderado " + dtoAp.getIdApoderado() + " no existe."));
 
-                // Creamos el enlace en la intermedia para este apoderado
-                vincularAlumnoConApoderado(alumno, apoderadoExistente);
+                // Si ya existe la relación, la recuperamos; si no, la creamos
+                AlumnoApoderado relacion = alumnoApoderadoRepository.findByAlumnoAndApoderado(alumno, apoderadoExistente)
+                        .orElse(new AlumnoApoderado(alumno, apoderadoExistente));
+
+                // Seteamos si es principal o secundario
+                relacion.setEsPrincipal(dtoAp.getEsPrincipal() != null ? dtoAp.getEsPrincipal() : false);
+                alumnoApoderadoRepository.save(relacion);
             }
         }
 
@@ -231,8 +245,12 @@ public class AlumnoService {
                         apoderadoFinal = apoderadoRepository.save(nuevoApoderado);
                     }
 
-                    // Creamos el enlace en la intermedia para este apoderado (nuevo o recuperado)
-                    vincularAlumnoConApoderado(alumno, apoderadoFinal);
+                    // Al crear el enlace en la intermedia, le inyectamos la prioridad
+                    AlumnoApoderado relacion = alumnoApoderadoRepository.findByAlumnoAndApoderado(alumno, apoderadoFinal)
+                            .orElse(new AlumnoApoderado(alumno, apoderadoFinal));
+
+                    relacion.setEsPrincipal(dtoAp.getEsPrincipal() != null ? dtoAp.getEsPrincipal() : false);
+                    alumnoApoderadoRepository.save(relacion);
                 }
             }
         }
@@ -281,6 +299,7 @@ public class AlumnoService {
                         dtoAp.setApellidoMaterno(ap.getApellidoMaterno());
                         dtoAp.setCelular(ap.getCelular());
                         dtoAp.setEmail(ap.getEmail());
+                        dtoAp.setEsPrincipal(relacion.getEsPrincipal());
                         return dtoAp;
                     }).toList();
 

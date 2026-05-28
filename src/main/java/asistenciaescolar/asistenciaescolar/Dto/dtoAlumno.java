@@ -15,10 +15,10 @@ public class dtoAlumno {
     private Integer estado;
     private Integer idSeccion; // Solo el ID
     private Integer idGrado;   // Solo el ID
-    private Integer dni;
+    private String dni;
 
     // AMBAS OPCIONES EN EL DTO:
-    private List<Integer> idsApoderados;   // Opción A: Mandan solo el ID si ya existe
+    private List<dtoApoderado> idsApoderados;   // Opción A: Mandan solo el ID si ya existe
     private List<dtoApoderado> apoderadosNuevos; // Opción B: Mandan los datos completos si es nuevo
     private List<dtoApoderado> apoderadosAsignados; // Aquí viajan los datos completos al Frontend
 }

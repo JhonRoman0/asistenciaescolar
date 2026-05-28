@@ -32,7 +32,7 @@ public interface RepositoryAlumno extends JpaRepository<Alumno,Integer> {
         List<Alumno> findBySeccionIdSeccion(Integer idSeccion);
 
         boolean existsByCodigoUnico(String codigoUnico);
-        boolean existsByDni(Integer dni);
+        boolean existsByDni(String dni);
 
 }
 

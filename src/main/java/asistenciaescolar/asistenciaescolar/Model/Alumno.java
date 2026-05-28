@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
@@ -27,7 +28,7 @@ public class Alumno {
     @Column(nullable = false)
     private Integer estado;
     @Column(nullable = false)
-    private Integer dni;
+    private String dni;
 
     @ManyToOne
     @JoinColumn(name = "idSeccion", nullable = false)
@@ -38,6 +39,7 @@ public class Alumno {
     private Grado grado;
 
     @OneToMany(mappedBy = "alumno", fetch = FetchType.EAGER)
+    @JsonIgnoreProperties("alumno")
     private List<AlumnoApoderado> alumnoApoderados;
 
 }

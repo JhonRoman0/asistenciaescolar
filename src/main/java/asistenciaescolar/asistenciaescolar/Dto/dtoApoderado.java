@@ -11,4 +11,5 @@ public class dtoApoderado {
     private Integer celular;
     private String email;
     private Integer idApoderado;
+    private Boolean esPrincipal;
 }
