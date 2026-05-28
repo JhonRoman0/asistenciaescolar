@@ -60,7 +60,7 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.POST, "/api/modulos/**").permitAll()
                         .requestMatchers(HttpMethod.PUT,"/api/modulos/**").permitAll()
 
-                        // 5. Restricciones específicas
+                        // 6. Restricciones específicas
                         .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("admin")
                         .requestMatchers("/api/usuarios/perfil").authenticated()
 
