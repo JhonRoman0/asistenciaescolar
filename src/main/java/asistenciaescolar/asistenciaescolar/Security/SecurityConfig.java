@@ -60,10 +60,12 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.POST, "/api/modulos/**").permitAll()
                         .requestMatchers(HttpMethod.PUT,"/api/modulos/**").permitAll()
 
+                        // 6. Enpointd de apoderado
+                        .requestMatchers("/api/apoderados", "/api/apoderados/**").permitAll()
+
                         // 5. Restricciones específicas
                         .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("admin")
                         .requestMatchers("/api/usuarios/perfil").authenticated()
-
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

@@ -22,7 +22,9 @@ public class Apoderado {
     @Column(nullable = false, length = 20)
     private String apellidoMaterno;
     @Column(nullable = false)
-    private Integer celular;
+    private String celular;
     @Column(nullable = false, length = 50)
     private String email;
+    @Column(nullable = false)
+    private Integer estado = 1;
 }

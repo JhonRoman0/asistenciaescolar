@@ -8,7 +8,7 @@ public class dtoApoderado {
     private String nombre;
     private String apellidoPaterno;
     private String apellidoMaterno;
-    private Integer celular;
+    private String celular;
     private String email;
     private Integer idApoderado;
     private Boolean esPrincipal;

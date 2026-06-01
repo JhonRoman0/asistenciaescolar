@@ -7,8 +7,9 @@ import asistenciaescolar.asistenciaescolar.Repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 
 @Service
@@ -27,6 +28,9 @@ public class AlumnoService {
 
     @Autowired
     private RepositorySeccion seccionRepository;
+
+    @Autowired
+    private RepositoryTurno turnoRepository;
 
     // 1. Método para REGISTRAR
     @Transactional
@@ -80,20 +84,18 @@ public class AlumnoService {
     }
 
     private String generarCodigoUnico() {
-        String nuevoCodigoPlano;
-        String codigoHasheado;
+        String nuevoCodigo;
         boolean existe;
         do {
+            // Ejemplo: ALU seguido de 6 números aleatorios (entre 100000 y 999999)
             int numero = (int)(Math.random() * 900000) + 100000;
-            nuevoCodigoPlano = "ALU" + numero;
+            nuevoCodigo = "ALU" + numero;
 
-            // Hasheo nativo de Spring, no necesitas instalar nada en el pom.xml
-            codigoHasheado = DigestUtils.md5DigestAsHex(nuevoCodigoPlano.getBytes());
-
-            existe = alumnoRepository.existsByCodigoUnico(codigoHasheado);
+            // Verificamos en la BD que no exista ya ese código plano
+            existe = alumnoRepository.existsByCodigoUnico(nuevoCodigo);
         } while (existe);
 
-        return codigoHasheado;
+        return nuevoCodigo;
     }
 
     // 4. Lógica de mapeo común para evitar repetir código
@@ -103,6 +105,8 @@ public class AlumnoService {
         alumno.setApellidoMaterno(dto.getApellidoMaterno());
         alumno.setRutaFoto(dto.getRutaFoto());
         alumno.setDni(dto.getDni());
+        alumno.setFechaNaci(dto.getFechaNaci());
+
 
         // SOLUCIÓN AL ERROR DE RUTA FOTO:
         // Si el DTO no trae ruta, ponemos una por defecto para que la BD no salte
@@ -120,11 +124,14 @@ public class AlumnoService {
         alumno.setEstado(dto.getEstado() != null ? dto.getEstado() : 1); // 1 (Activo) por defecto
 
         // Buscamos las entidades relacionadas
+        Turno turno = turnoRepository.findById(dto.getIdTurno())
+                .orElseThrow(() -> new RuntimeException("Turno no encontrado"));
         Grado grado = gradoRepository.findById(dto.getIdGrado())
                 .orElseThrow(() -> new RuntimeException("Grado no encontrado"));
         Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
                 .orElseThrow(() -> new RuntimeException("Sección no encontrada"));
 
+        alumno.setTurno(turno);
         alumno.setGrado(grado);
         alumno.setSeccion(seccion);
 
@@ -168,7 +175,9 @@ public class AlumnoService {
                     // 2. Validamos que si se cambió el DNI en el input, no choque con otra persona en la BD
                     if (dtoAp.getDni() != null) {
                         String dniApoderado = dtoAp.getDni().trim();
-                        if (!apoderadoExistente.getDni().equals(dniApoderado) && apoderadoRepository.existsByDni(dniApoderado)) {
+                        String dniEnBD = apoderadoExistente.getDni().trim(); // <-- Limpiamos espacios de la BD
+
+                        if (!dniEnBD.equals(dniApoderado) && apoderadoRepository.existsByDni(dniApoderado)) {
                             throw new RuntimeException("El DNI " + dniApoderado + " ya pertenece a otro apoderado.");
                         }
                         apoderadoExistente.setDni(dniApoderado);
@@ -283,9 +292,22 @@ public class AlumnoService {
         dto.setRutaFoto(alumno.getRutaFoto());
         dto.setEstado(alumno.getEstado());
         dto.setDni(alumno.getDni());
+        dto.setFechaNaci(alumno.getFechaNaci());
 
-        if (alumno.getGrado() != null) dto.setIdGrado(alumno.getGrado().getIdGrado());
-        if (alumno.getSeccion() != null) dto.setIdSeccion(alumno.getSeccion().getIdSeccion());
+
+        if (alumno.getTurno() != null) {
+            dto.setTurno(alumno.getTurno());
+            dto.setIdTurno(alumno.getTurno().getIdTurno());
+        }
+
+        if (alumno.getGrado() != null) {
+            dto.setGrado(alumno.getGrado()); // Esto le dará el objeto completo con ID y Nombre al Front
+            dto.setIdGrado(alumno.getGrado().getIdGrado()); // Dejamos el ID plano por si acaso
+        }
+        if (alumno.getSeccion() != null) {
+            dto.setSeccion(alumno.getSeccion()); // Esto le dará el objeto completo con ID y Nombre al Front
+            dto.setIdSeccion(alumno.getSeccion().getIdSeccion()); // Dejamos el ID plano por si acaso
+        }
 
         // Mapeamos los apoderados asignados recorriendo la intermedia
         if (alumno.getAlumnoApoderados() != null) {

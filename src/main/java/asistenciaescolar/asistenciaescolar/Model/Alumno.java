@@ -3,6 +3,8 @@ package asistenciaescolar.asistenciaescolar.Model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
@@ -29,6 +31,13 @@ public class Alumno {
     private Integer estado;
     @Column(nullable = false)
     private String dni;
+    @Column(nullable = false)
+    private LocalDate fechaNaci;
+
+    @ManyToOne
+    @JoinColumn(name = "idTurno",nullable = false)
+    private Turno turno;
+
 
     @ManyToOne
     @JoinColumn(name = "idSeccion", nullable = false)
