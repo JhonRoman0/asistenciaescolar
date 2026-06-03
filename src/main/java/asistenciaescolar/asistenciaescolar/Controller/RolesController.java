@@ -3,6 +3,8 @@ package asistenciaescolar.asistenciaescolar.Controller;
 import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Service.RolesService; // Asegúrate que el nombre coincida
 import asistenciaescolar.asistenciaescolar.Dto.dtoRoles;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,24 +13,29 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/roles")
-@CrossOrigin(origins = "*") // Importante para conectar con tu HTML
+@CrossOrigin(origins = "*")
+
+@Tag(name = "Roles", description = "Crud de Roles")
 public class RolesController {
 
     @Autowired
     private RolesService rolesService;
 
     @GetMapping
+    @Operation(summary = "Listar Roles")
     public ResponseEntity<List<Roles>> listar() {
         return ResponseEntity.ok(rolesService.listarTodos());
     }
 
     @PostMapping
+    @Operation(summary = "Reistrar Roles")
     public ResponseEntity<String> crear(@RequestBody dtoRoles rolDto) {
         rolesService.crearRol(rolDto);
         return ResponseEntity.ok("Rol guardado correctamente");
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Actualizar Roles")
     public ResponseEntity<String> actualizar(@PathVariable Integer id, @RequestBody dtoRoles rolDto) {
         try {
             rolesService.actualizarRol(id, rolDto);
@@ -39,16 +46,15 @@ public class RolesController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar Roles")
     public ResponseEntity<String> eliminar(@PathVariable Integer id) {
         try {
             rolesService.eliminarLogico(id);
             return ResponseEntity.ok("Rol desactivado con éxito");
         } catch (RuntimeException e) {
-            // CORRECCIÓN: Si el mensaje contiene la palabra 'No se puede', es por los usuarios asignados (Error 400 Bad Request)
             if (e.getMessage().contains("No se puede")) {
                 return ResponseEntity.status(400).body(e.getMessage());
             }
-            // Si es cualquier otro error, significa que realmente no se encontró el ID (Error 404)
             return ResponseEntity.status(404).body(e.getMessage());
         }
     }

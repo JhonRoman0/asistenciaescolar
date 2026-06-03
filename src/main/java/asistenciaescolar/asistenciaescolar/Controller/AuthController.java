@@ -11,11 +11,11 @@ public class AuthController {
 
     @GetMapping("/login")
     public String login() {
-        return "redirect:/login.html"; // Nombre del archivo login.html
+        return "redirect:/login.html";
     }
 
     @GetMapping("/dashboard")
     public String dashboard() {
-        return "redirect:/dashboard.html"; // Crea un dashboard.html sencillo para probar
+        return "redirect:/dashboard.html";
     }
 }

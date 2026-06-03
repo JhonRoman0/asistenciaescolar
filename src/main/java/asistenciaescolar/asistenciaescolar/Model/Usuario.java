@@ -32,7 +32,6 @@ public class Usuario {
     private Short estado;
     @Column(nullable = false)
     private String codigUsuario;
-    // En tu clase Usuario.java
     @OneToMany(mappedBy = "usuario", fetch = FetchType.EAGER)
     private Set<UsuarioRoles> usuarioRoles;
 

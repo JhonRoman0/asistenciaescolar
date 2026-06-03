@@ -11,7 +11,6 @@ import java.util.Optional;
 public interface RepositoryApoderado extends JpaRepository<Apoderado,Integer> {
     // Ahora validamos y buscamos por el número de documento
     boolean existsByDni(String dni);
-
     Optional<Apoderado> findByDni(String dni);
 
     // Solo busca si el DNI coincide Y el apoderado está activo (estado = 1)
@@ -19,6 +18,5 @@ public interface RepositoryApoderado extends JpaRepository<Apoderado,Integer> {
 
     // Solo lista los que están activos en el sistema
     List<Apoderado> findByEstado(Integer estado);
-
     boolean existsByDniAndEstado(String dni, Integer estado);
 }

@@ -28,8 +28,8 @@ public class SecurityConfig{
                                 "/dashboard.html",
                                 "/registro_usuario.html",
                                 "/lista_usuarios.html",
-                                "/registro_alumno.html", // Agregado
-                                "/lista_alumno.html",    // Agregado
+                                "/registro_alumno.html",
+                                "/lista_alumno.html",
                                 "/static/**",
                                 "/css/**",
                                 "/js/**"
@@ -49,7 +49,6 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.DELETE, "/api/roles/**").permitAll()
 
                         // 4. NUEVO: Endpoints de Alumnos (Permisos explícitos para el CRUD)
-                        // Incluimos la ruta base exacta "/api/alumnos" y sus sub-rutas "/api/alumnos/**"
                         .requestMatchers(HttpMethod.GET, "/api/alumnos", "/api/alumnos/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/alumnos", "/api/alumnos/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/alumnos", "/api/alumnos/**").permitAll()

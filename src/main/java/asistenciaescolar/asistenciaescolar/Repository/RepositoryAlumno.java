@@ -12,9 +12,6 @@ import java.util.Optional;
 @Repository
 public interface RepositoryAlumno extends JpaRepository<Alumno,Integer> {
 
-        // 1. Buscar por código único (para validaciones y escaneo)
-        Optional<Alumno> findByCodigoUnico(String codigoUnico);
-
         // 2. Filtros dinámicos para la tabla (El que causaba el error)
         @Query("SELECT a FROM Alumno a WHERE " +
                 "(:nombre IS NULL OR LOWER(a.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) AND " +
@@ -27,9 +24,6 @@ public interface RepositoryAlumno extends JpaRepository<Alumno,Integer> {
                 @Param("idSeccion") Integer idSeccion,
                 @Param("estado") Integer estado
         );
-
-        // 3. Buscar por sección (útil para generar carnets masivos)
-        List<Alumno> findBySeccionIdSeccion(Integer idSeccion);
 
         boolean existsByCodigoUnico(String codigoUnico);
         boolean existsByDni(String dni);
