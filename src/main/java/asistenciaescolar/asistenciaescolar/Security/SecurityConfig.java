@@ -9,31 +9,35 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig{
 
-    @Autowired
-    private CustomAuthenticationSuccessHandler successHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 1. Deshabilitar CSRF (Crucial para APIs REST independientes)
                 .csrf(csrf -> csrf.disable())
+                // 2. Configurar CORS para permitir que Next.js se conecte
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // 1. Archivos HTML y estáticos
                         .requestMatchers(
-                                "/login.html",
-                                "/dashboard.html",
-                                "/registro_usuario.html",
-                                "/lista_usuarios.html",
-                                "/registro_alumno.html",
-                                "/lista_alumno.html",
-                                "/static/**",
-                                "/css/**",
-                                "/js/**"
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
                         ).permitAll()
+
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll()
+                        .requestMatchers("/api/usuarios/perfil").authenticated()
 
                         // 2. Endpoints de Usuarios
                         .requestMatchers(HttpMethod.GET, "/api/roles","/api/roles/**").permitAll()
@@ -62,16 +66,7 @@ public class SecurityConfig{
                         // 6. Enpointd de apoderado
                         .requestMatchers("/api/apoderados", "/api/apoderados/**").permitAll()
 
-                        // 5. Restricciones específicas
-                        .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("admin")
-                        .requestMatchers("/api/usuarios/perfil").authenticated()
                         .anyRequest().authenticated()
-                )
-                .formLogin(form -> form
-                        .loginPage("/login.html")
-                        .loginProcessingUrl("/login")
-                        .successHandler(successHandler)
-                        .permitAll()
                 );
 
         return http.build();
@@ -80,5 +75,19 @@ public class SecurityConfig{
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    // Configuración explícita de CORS para tu Front-end en Next.js
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:3000")); // Origen de Next.js
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

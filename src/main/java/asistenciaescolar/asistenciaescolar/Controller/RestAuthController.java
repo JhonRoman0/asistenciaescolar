@@ -6,7 +6,6 @@ import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Model.Usuario;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryUsuario;
 import asistenciaescolar.asistenciaescolar.Security.CustomUserDetailsService;
-import asistenciaescolar.asistenciaescolar.Service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
