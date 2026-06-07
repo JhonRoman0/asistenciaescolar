@@ -15,12 +15,12 @@ public class Colegio {
     @Column(nullable = false, length = 100)
     private String colegio;
     @Column(nullable = false)
-    private Short codigo;
+    private String codigo;
     @Column(nullable = false, length = 100)
     private String direccion;
     private String telefono;
     @Column(nullable = false)
-    private Short celular;
+    private String celular;
     @Column(nullable = false, length = 50)
     private String gmail;
 }

@@ -66,6 +66,12 @@ public class SecurityConfig{
                         // 6. Enpointd de apoderado
                         .requestMatchers("/api/apoderados", "/api/apoderados/**").permitAll()
 
+                        // 7: Enpointd de Turno
+                        .requestMatchers("/api/turnos/**").permitAll()
+
+                        // 8: Enpointd de Colegio
+                        .requestMatchers("/api/colegios/**").permitAll()
+
                         .anyRequest().authenticated()
                 );
 
