@@ -28,5 +28,8 @@ public interface RepositoryAlumno extends JpaRepository<Alumno,Integer> {
         boolean existsByCodigoUnico(String codigoUnico);
         boolean existsByDni(String dni);
 
+        Optional<Alumno> findByCodigoHash(String codigoHash);
+        Optional<Alumno> findByCodigoUnico(String codigoUnico);
+
 }
 

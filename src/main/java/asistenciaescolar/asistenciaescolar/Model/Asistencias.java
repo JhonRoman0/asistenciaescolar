@@ -30,6 +30,6 @@ public class Asistencias {
     private Estado estado;
 
     @ManyToOne
-    @JoinColumn(name = "idJustificacion",nullable = false)
+    @JoinColumn(name = "idJustificacion",nullable = true)
     private Justificacion justificacion;
 }

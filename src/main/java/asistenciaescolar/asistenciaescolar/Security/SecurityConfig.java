@@ -72,6 +72,11 @@ public class SecurityConfig{
                         // 8: Enpointd de Colegio
                         .requestMatchers("/api/colegios/**").permitAll()
 
+                        // 9. NUEVO: Endpoints de Asistencias (Módulo de marcado de QR y manual)
+                        .requestMatchers(HttpMethod.POST, "/api/asistencias/previsualizar").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/asistencias/confirmar").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/asistencias/**").permitAll()
+
                         .anyRequest().authenticated()
                 );
 

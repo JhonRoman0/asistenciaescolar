@@ -2,7 +2,6 @@ package asistenciaescolar.asistenciaescolar.Security;
 
 import asistenciaescolar.asistenciaescolar.Model.Modulo;
 import asistenciaescolar.asistenciaescolar.Model.Roles;
-import asistenciaescolar.asistenciaescolar.Service.UsuarioService;
 import asistenciaescolar.asistenciaescolar.Model.Usuario;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryUsuario;
 import jakarta.servlet.ServletException;
