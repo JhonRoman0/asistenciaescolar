@@ -117,7 +117,9 @@ public class AlumnoService {
         }
 
         if (alumno.getIdAlumno() == null) {
-            alumno.setCodigoUnico(generarCodigoUnico());
+            String codigoPlano = generarCodigoUnico();
+            alumno.setCodigoUnico(codigoPlano);
+            alumno.setCodigoHash(hashearTexto(codigoPlano));
         }
 
         // El estado lo recibes como 0, 1 o 2
@@ -289,6 +291,7 @@ public class AlumnoService {
         dto.setApellidoPaterno(alumno.getApellidoPaterno());
         dto.setApellidoMaterno(alumno.getApellidoMaterno());
         dto.setCodigoUnico(alumno.getCodigoUnico());
+        dto.setCodigoHash(alumno.getCodigoHash());
         dto.setRutaFoto(alumno.getRutaFoto());
         dto.setEstado(alumno.getEstado());
         dto.setDni(alumno.getDni());
@@ -329,5 +332,25 @@ public class AlumnoService {
         }
 
         return dto;
+    }
+
+    // =========================================================================
+// NUEVO MÉTODO AUXILIAR: Añade esto al final de tu clase AlumnoService
+// =========================================================================
+    private String hashearTexto(String texto) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(texto.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString(); // Retorna la cadena de 64 caracteres
+        } catch (Exception ex) {
+            throw new RuntimeException("Error crítico al generar el hash del código único.", ex);
+        }
     }
 }

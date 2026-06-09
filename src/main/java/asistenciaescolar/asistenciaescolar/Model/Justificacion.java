@@ -12,7 +12,7 @@ import lombok.*;
 public class Justificacion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer idJustificaicon;
+    private Integer idJustificacion;
     @Column(nullable = false, length = 100)
     private String descripcion;
 }

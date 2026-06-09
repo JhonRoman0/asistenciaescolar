@@ -25,6 +25,7 @@ public class dtoAlumno {
     private LocalDate fechaNaci;
     private Integer idTurno;
     private Turno turno;
+    private  String codigoHash;
 
     private List<dtoApoderado> idsApoderados;
     private List<dtoApoderado> apoderadosNuevos;

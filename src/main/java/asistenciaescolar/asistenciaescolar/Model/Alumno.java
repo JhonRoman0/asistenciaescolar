@@ -33,6 +33,8 @@ public class Alumno {
     private String dni;
     @Column(nullable = false)
     private LocalDate fechaNaci;
+    @Column(nullable = false)
+    private  String codigoHash;
 
     @ManyToOne
     @JoinColumn(name = "idTurno",nullable = false)
