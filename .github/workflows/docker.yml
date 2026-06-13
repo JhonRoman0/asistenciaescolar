@@ -24,4 +24,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: jairodrigo/asistenciaescolar:latest
+          tags: jhonroman0/asistenciaescolar:latest

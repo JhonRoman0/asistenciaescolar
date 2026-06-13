@@ -60,7 +60,7 @@ public class ModuloController {
     public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
         try {
             moduloService.eliminarLogico(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT); // Código 204: Todo salió bien, sin contenido que devolver
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {

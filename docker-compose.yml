@@ -19,7 +19,7 @@ services:
       - app-network
 
   springboot-app:
-    image: jairodrigo/asistenciaescolar:latest
+    image: jhonroman0/asistenciaescolar:latest
     container_name: springboot-app
     restart: always
     ports:
