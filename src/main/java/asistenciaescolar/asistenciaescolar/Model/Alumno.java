@@ -23,8 +23,10 @@ public class Alumno {
     private String apellidoMaterno;
     @Column(nullable = false, length = 20)
     private String apellidoPaterno;
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String rutaFoto;
+    @Column(name = "foto_public_id", nullable = true)
+    private String fotoPublicId;
     @Column(nullable = false)
     private String codigoUnico;
     @Column(nullable = false)

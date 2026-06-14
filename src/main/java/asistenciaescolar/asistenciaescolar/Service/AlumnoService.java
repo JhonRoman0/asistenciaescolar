@@ -7,8 +7,10 @@ import asistenciaescolar.asistenciaescolar.Repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AlumnoService {
@@ -30,16 +32,45 @@ public class AlumnoService {
     @Autowired
     private RepositoryTurno turnoRepository;
 
+    @Autowired
+    private StorageService storageService;
+
     // 1. Método para REGISTRAR
     @Transactional
-    public Alumno guardarAlumno(dtoAlumno dto) {
+    public Alumno guardarAlumno(dtoAlumno dto, MultipartFile foto) {
         // 1. Validamos que el DNI único no exista para evitar errores de duplicidad
         if (alumnoRepository.existsByDni(dto.getDni())) {
             throw new RuntimeException("El DNI " + dto.getDni() + " ya está registrado en el sistema.");
         }
-
         // 2. Guardar al Alumno primero
         Alumno alumno = new Alumno();
+        // 2. Si el frontend envía una foto, la subimos a su carpeta estructurada antes de guardar en BD
+        if (foto != null && !foto.isEmpty()) {
+            try {
+                // Buscamos los nombres de grado y sección para la subcarpeta automática
+                Grado grado = gradoRepository.findById(dto.getIdGrado())
+                        .orElseThrow(() -> new RuntimeException("Grado no encontrado"));
+                Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
+                        .orElseThrow(() -> new RuntimeException("Sección no encontrada"));
+
+                // Limpiamos el texto (minúsculas, sin espacios) siguiendo buenas prácticas
+                String folderEstructurado = "alumnos/" +
+                        grado.getGrado().toLowerCase().trim().replace(" ", "-") + "/" +
+                        seccion.getSeccion().toLowerCase().trim().replace(" ", "-");
+
+                // Subimos a Cloudinary usando el servicio estructurado
+                Map<String, Object> result = storageService.uploadFile(foto, folderEstructurado);
+
+                // Extraemos la metadata que nos devuelve Cloudinary
+                dto.setRutaFoto((String) result.get("secure_url"));
+                alumno.setFotoPublicId((String) result.get("public_id"));
+
+            } catch (Exception e) {
+                throw new RuntimeException("Error al subir la foto de perfil a Cloudinary: " + e.getMessage());
+            }
+        } else {
+            dto.setRutaFoto("default-profile.png"); // Foto por defecto si no suben nada
+        }
         Alumno alumnoGuardado = mapearYGuardar(alumno, dto);
 
         // 3. CONTROL INTELIGENTE DEL APODERADO POR DNI (¡Aquí llamamos al método modular!)
@@ -56,11 +87,42 @@ public class AlumnoService {
 
     // 2. Método para ACTUALIZAR
     @Transactional
-    public Alumno actualizarAlumno(Integer id, dtoAlumno dto) {
+    public Alumno actualizarAlumno(Integer id, dtoAlumno dto, MultipartFile nuevaFoto) {
         Alumno alumnoExistente = alumnoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Alumno no encontrado con ID: " + id));
         if (!alumnoExistente.getDni().equals(dto.getDni()) && alumnoRepository.existsByDni(dto.getDni())) {
             throw new RuntimeException("El DNI " + dto.getDni() + " ya pertenece a otro alumno.");
+        }
+        if (nuevaFoto != null && !nuevaFoto.isEmpty()) {
+            try {
+                // 1. Borramos la foto anterior si tenía un ID válido registrado
+                if (alumnoExistente.getFotoPublicId() != null && !alumnoExistente.getFotoPublicId().isEmpty()) {
+                    storageService.deleteFile(alumnoExistente.getFotoPublicId());
+                }
+
+                // 2. Estructuramos la ruta dinámica para la nueva ubicación
+                Grado grado = gradoRepository.findById(dto.getIdGrado())
+                        .orElseThrow(() -> new RuntimeException("Grado no encontrado"));
+                Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
+                        .orElseThrow(() -> new RuntimeException("Sección no encontrada"));
+
+                String folderEstructurado = "alumnos/" +
+                        grado.getGrado().toLowerCase().trim().replace(" ", "-") + "/" +
+                        seccion.getSeccion().toLowerCase().trim().replace(" ", "-");
+
+                // 3. Subimos el nuevo archivo
+                Map<String, Object> result = storageService.uploadFile(nuevaFoto, folderEstructurado);
+
+                // 4. Actualizamos el DTO y la entidad con los nuevos valores
+                dto.setRutaFoto((String) result.get("secure_url"));
+                alumnoExistente.setFotoPublicId((String) result.get("public_id"));
+
+            } catch (Exception e) {
+                throw new RuntimeException("Error al actualizar la foto en Cloudinary: " + e.getMessage());
+            }
+        } else {
+            // Si no se envía una nueva foto, conserva la ruta de la foto que ya tenía
+            dto.setRutaFoto(alumnoExistente.getRutaFoto());
         }
         // Actualizamos los datos propios del alumno
         Alumno alumnoActualizado = mapearYGuardar(alumnoExistente, dto);
@@ -106,12 +168,11 @@ public class AlumnoService {
         alumno.setFechaNaci(dto.getFechaNaci());
 
 
-        // SOLUCIÓN AL ERROR DE RUTA FOTO:
-        // Si el DTO no trae ruta, ponemos una por defecto para que la BD no salte
+        // Control inteligente de la ruta de la foto
         if (dto.getRutaFoto() == null || dto.getRutaFoto().isEmpty()) {
-            alumno.setRutaFoto("default-profile.png"); // Valor temporal
+            alumno.setRutaFoto("default-profile.png"); // Valor por defecto si no hay foto en el DTO
         } else {
-            alumno.setRutaFoto(dto.getRutaFoto());
+            alumno.setRutaFoto(dto.getRutaFoto()); // Asigna la URL de Cloudinary inyectada previamente
         }
 
         if (alumno.getIdAlumno() == null) {
@@ -265,19 +326,6 @@ public class AlumnoService {
         }
     }
 
-    // Método auxiliar interno para no repetir la lógica de guardado en la tabla intermedia
-    private void vincularAlumnoConApoderado(Alumno alumno, Apoderado apoderado) {
-        // 1. Validamos si ya existe exactamente este alumno asociado a este apoderado
-        boolean existeRelacion = alumnoApoderadoRepository.existsByAlumnoAndApoderado(alumno, apoderado);
-
-        // 2. Solo si NO existe la relación en la base de datos, procedemos a guardarla
-        if (!existeRelacion) {
-            AlumnoApoderado relacion = new AlumnoApoderado();
-            relacion.setAlumno(alumno);
-            relacion.setApoderado(apoderado);
-            alumnoApoderadoRepository.save(relacion);
-        }
-    }
 
     // =========================================================================
     // EL METODO QUE TE FALTABA: Convierte la entidad de la BD a tu dtoAlumno

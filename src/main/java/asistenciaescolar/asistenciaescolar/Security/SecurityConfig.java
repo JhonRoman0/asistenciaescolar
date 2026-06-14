@@ -53,6 +53,7 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.DELETE, "/api/roles/**").permitAll()
 
                         // 4. NUEVO: Endpoints de Alumnos (Permisos explícitos para el CRUD)
+                        .requestMatchers("/api/alumnos", "/api/alumnos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/alumnos", "/api/alumnos/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/alumnos", "/api/alumnos/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/alumnos", "/api/alumnos/**").permitAll()

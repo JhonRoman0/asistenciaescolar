@@ -9,8 +9,10 @@ import asistenciaescolar.asistenciaescolar.Service.AlumnoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -40,16 +42,21 @@ public class AlumnoController {
     }
 
 
-    @PostMapping
-    @Operation(summary = "Registrar alumnos con apoderados")
-    public ResponseEntity<Alumno> registrar(@RequestBody dtoAlumno dto) {
-        return ResponseEntity.ok(alumnoService.guardarAlumno(dto));
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Registrar alumnos con apoderados y foto de perfil")
+    public ResponseEntity<Alumno> registrar(
+            @RequestPart("alumno") dtoAlumno dto,
+            @RequestPart(value = "foto", required = false) MultipartFile foto) {
+        return ResponseEntity.ok(alumnoService.guardarAlumno(dto, foto));
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Actualizar alumnos con apoderado")
-    public ResponseEntity<Alumno> actualizar(@PathVariable Integer id, @RequestBody dtoAlumno dto) {
-        return ResponseEntity.ok(alumnoService.actualizarAlumno(id, dto));
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Actualizar alumnos con apoderado y nueva foto")
+    public ResponseEntity<Alumno> actualizar(
+            @PathVariable Integer id,
+            @RequestPart("alumno") dtoAlumno dto,
+            @RequestPart(value = "foto", required = false) MultipartFile foto) {
+        return ResponseEntity.ok(alumnoService.actualizarAlumno(id, dto, foto));
     }
 
     @GetMapping("/grados")
