@@ -4,7 +4,9 @@ import asistenciaescolar.asistenciaescolar.Dto.dtoApoderado;
 import asistenciaescolar.asistenciaescolar.Service.ApoderadoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,12 +14,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/apoderados")
-
+@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 @Tag(name = "Apoderado", description = "Crud de Apoderado")
 public class ApoderadoController {
 
-    @Autowired
-    private ApoderadoService apoderadoService;
+    private final ApoderadoService apoderadoService;
 
 
     @GetMapping("/dni/{dni}")
@@ -35,7 +37,7 @@ public class ApoderadoController {
     @PostMapping
     @Operation(summary = "Reistrar Apoderado")
     public ResponseEntity<dtoApoderado> registrar(@RequestBody dtoApoderado dto) {
-        return ResponseEntity.ok(apoderadoService.guardar(dto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(apoderadoService.guardar(dto));
     }
 
     @PutMapping("/{id}")
@@ -46,8 +48,8 @@ public class ApoderadoController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar Apoderado Logica")
-    public ResponseEntity<String> eliminar(@PathVariable Integer id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
         apoderadoService.eliminarLogico(id);
-        return ResponseEntity.ok("Apoderado dado de baja correctamente en el sistema.");
+        return ResponseEntity.noContent().build();
     }
 }

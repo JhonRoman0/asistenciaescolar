@@ -30,6 +30,7 @@ services:
       DB_USER: JhonRoman0
       DB_PASSWORD: Jhon751154772@@2
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
     depends_on:
       - mysql
     networks:

@@ -5,8 +5,11 @@ import asistenciaescolar.asistenciaescolar.Dto.dtoAsistenciaResponse;
 import asistenciaescolar.asistenciaescolar.Model.*;
 import asistenciaescolar.asistenciaescolar.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -36,7 +39,7 @@ public class AsistenciaService {
         // 2. Control de doble escaneo diario
         boolean yaAsistio = asistenciaRepository.existsByAlumnoAndFecha(alumno, LocalDate.now());
         if (yaAsistio) {
-            throw new RuntimeException("El alumno ya registró su asistencia el día de hoy.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El alumno ya registró su asistencia el día de hoy.");
         }
 
         // 3. Captura de tiempo y validación de rango de turno
@@ -45,13 +48,13 @@ public class AsistenciaService {
 
         LocalTime inicioPermitido = turno.getHoraEntrada().minusMinutes(45);
         if (horaActual.isBefore(inicioPermitido)) {
-            throw new RuntimeException("Registro denegado: Aún no inicia el horario de ingreso para el turno " + turno.getTurno());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registro denegado: Aún no inicia el horario de ingreso para el turno " + turno.getTurno());
         }
 
         // 4. Calcular qué Estado le correspondería en este momento
         Integer idEstadoCalculado = calcularIdEstado(horaActual, turno);
         Estado estado = estadoRepository.findById(idEstadoCalculado)
-                .orElseThrow(() -> new RuntimeException("Error en la configuración de estados."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Error en la configuración de estados."));
 
         // Devolvemos los datos para que el Front pinte la foto y nombre del alumno
         return new dtoAsistenciaResponse(
@@ -74,7 +77,7 @@ public class AsistenciaService {
         // Volvemos a validar doble escaneo por seguridad atómica
         boolean yaAsistio = asistenciaRepository.existsByAlumnoAndFecha(alumno, LocalDate.now());
         if (yaAsistio) {
-            throw new RuntimeException("El alumno ya registró su asistencia el día de hoy.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El alumno ya registró su asistencia el día de hoy.");
         }
 
         LocalTime horaActual = LocalTime.now();
@@ -83,7 +86,7 @@ public class AsistenciaService {
         // Calculamos el estado definitivo del momento exacto del click
         Integer idEstadoCalculado = calcularIdEstado(horaActual, turno);
         Estado estado = estadoRepository.findById(idEstadoCalculado)
-                .orElseThrow(() -> new RuntimeException("Error en la configuración de estados."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Error en la configuración de estados."));
 
         // Guardamos físicamente en la BD
         Asistencias asistencia = new Asistencias();
@@ -96,21 +99,17 @@ public class AsistenciaService {
         // CAMBIO AQUÍ: Controlar dinámicamente la justificación
         // =========================================================================
         if (idEstadoCalculado == 4) {
-            // Si cae en el rango del ID 4, el frontend obligatoriamente debió mandar el ID
             if (request.getIdJustificacion() == null) {
-                throw new RuntimeException("Debe seleccionar un motivo de justificación para registrar el ingreso.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar un motivo de justificación para registrar el ingreso.");
             }
 
-            // Buscamos el motivo (salud, personal, viaje, familiares) en tu tabla Justificacion
             Justificacion justificacion = justificacionRepository.findById(request.getIdJustificacion())
-                    .orElseThrow(() -> new RuntimeException("El motivo de justificación seleccionado no es válido."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El motivo de justificación seleccionado no es válido."));
 
             asistencia.setJustificacion(justificacion);
         } else {
-            // Si el alumno está Puntual (ID 1) o Tardanza (ID 3), se guarda como siempre: vacío (NULL)
             asistencia.setJustificacion(null);
         }
-        // =========================================================================
 
         asistenciaRepository.save(asistencia);
 
@@ -133,12 +132,12 @@ public class AsistenciaService {
     private Alumno buscarAlumnoPorRequest(dtoAsistenciaRequest request) {
         if (request.getCodigoHash() != null && !request.getCodigoHash().isEmpty()) {
             return alumnoRepository.findByCodigoHash(request.getCodigoHash())
-                    .orElseThrow(() -> new RuntimeException("Código QR no válido."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Código QR no válido."));
         } else if (request.getCodigoUnico() != null && !request.getCodigoUnico().isEmpty()) {
             return alumnoRepository.findByCodigoUnico(request.getCodigoUnico())
-                    .orElseThrow(() -> new RuntimeException("Código único de alumno no encontrado."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Código único de alumno no encontrado."));
         } else {
-            throw new RuntimeException("Debe escanear un QR o ingresar un código manual.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe escanear un QR o ingresar un código manual.");
         }
     }
 
@@ -152,7 +151,7 @@ public class AsistenciaService {
                 (horaActual.isBefore(turno.getHoraFaltaLimite()) || horaActual.equals(turno.getHoraFaltaLimite()))) {
             return 4; // Asistencia Justificada
         } else {
-            throw new RuntimeException("Registro denegado: El límite de ingreso ha expirado. Es Inasistencia.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registro denegado: El límite de ingreso ha expirado. Es Inasistencia.");
         }
     }
 }

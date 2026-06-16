@@ -46,6 +46,8 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
 
                         // 3. Endpoints de Roles
                         .requestMatchers(HttpMethod.POST, "/api/roles").permitAll()

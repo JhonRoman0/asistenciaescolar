@@ -4,10 +4,14 @@ import asistenciaescolar.asistenciaescolar.Dto.dtoApoderado;
 import asistenciaescolar.asistenciaescolar.Model.Apoderado;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryApoderado;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 public class ApoderadoService {
@@ -18,7 +22,7 @@ public class ApoderadoService {
     // 🔍 BUSCAR POR DNI (Solo activos)
     public dtoApoderado buscarPorDni(String dni) {
         Apoderado apoderado = apoderadoRepository.findByDniAndEstado(dni, 1)
-                .orElseThrow(() -> new RuntimeException("Apoderado activo con DNI " + dni + " no encontrado."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Apoderado activo con DNI " + dni + " no encontrado."));
         return convertirADto(apoderado);
     }
 
@@ -26,14 +30,13 @@ public class ApoderadoService {
     public List<dtoApoderado> listarTodos() {
         return apoderadoRepository.findByEstado(1).stream()
                 .map(this::convertirADto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ➕ REGISTRAR APODERADO INDEPENDIENTE
     public dtoApoderado guardar(dtoApoderado dto) {
-        // Validamos si ya existe un apoderado ACTIVO con ese mismo DNI
         if (apoderadoRepository.existsByDniAndEstado(dto.getDni(), 1)) {
-            throw new RuntimeException("El DNI " + dto.getDni() + " ya está registrado y activo.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI " + dto.getDni() + " ya está registrado y activo.");
         }
 
         Apoderado apoderado = new Apoderado();
@@ -52,12 +55,12 @@ public class ApoderadoService {
     // ✏️ ACTUALIZAR
     public dtoApoderado actualizar(Integer id, dtoApoderado dto) {
         Apoderado apoderadoExistente = apoderadoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Apoderado no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Apoderado no encontrado con ID: " + id));
 
         // Si intenta cambiar el DNI, validamos que el nuevo no esté ocupado por otro activo
         if (!apoderadoExistente.getDni().equals(dto.getDni()) &&
                 apoderadoRepository.existsByDniAndEstado(dto.getDni(), 1)) {
-            throw new RuntimeException("El DNI " + dto.getDni() + " ya pertenece a otro apoderado activo.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI " + dto.getDni() + " ya pertenece a otro apoderado activo.");
         }
 
         apoderadoExistente.setDni(dto.getDni());
@@ -74,7 +77,7 @@ public class ApoderadoService {
     // ❌ BORRADO LÓGICO
     public void eliminarLogico(Integer id) {
         Apoderado apoderado = apoderadoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No se pudo eliminar. El ID no existe."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se pudo eliminar. El ID " + id + " no existe."));
 
         // Cambiamos el estado a 0 para "ocultarlo" del sistema
         apoderado.setEstado(0);

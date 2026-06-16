@@ -5,7 +5,9 @@ import asistenciaescolar.asistenciaescolar.Service.RolesService; // Asegúrate q
 import asistenciaescolar.asistenciaescolar.Dto.dtoRoles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,12 +16,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/roles")
 @CrossOrigin(origins = "*")
-
+@RequiredArgsConstructor
 @Tag(name = "Roles", description = "Crud de Roles")
 public class RolesController {
 
-    @Autowired
-    private RolesService rolesService;
+    private final RolesService rolesService;
 
     @GetMapping
     @Operation(summary = "Listar Roles")
@@ -29,33 +30,22 @@ public class RolesController {
 
     @PostMapping
     @Operation(summary = "Reistrar Roles")
-    public ResponseEntity<String> crear(@RequestBody dtoRoles rolDto) {
-        rolesService.crearRol(rolDto);
-        return ResponseEntity.ok("Rol guardado correctamente");
+    public ResponseEntity<Roles> crear(@RequestBody dtoRoles rolDto) { // <-- Cambiado de String a Roles
+        Roles nuevoRol = rolesService.crearRol(rolDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoRol); // <-- Cambiado a 201 Created con el objeto
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar Roles")
-    public ResponseEntity<String> actualizar(@PathVariable Integer id, @RequestBody dtoRoles rolDto) {
-        try {
-            rolesService.actualizarRol(id, rolDto);
-            return ResponseEntity.ok("Rol actualizado");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Rol no encontrado");
-        }
+    public ResponseEntity<Roles> actualizar(@PathVariable Integer id, @RequestBody dtoRoles rolDto) {
+        Roles rolActualizado = rolesService.actualizarRol(id, rolDto);
+        return ResponseEntity.ok(rolActualizado);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar Roles")
-    public ResponseEntity<String> eliminar(@PathVariable Integer id) {
-        try {
-            rolesService.eliminarLogico(id);
-            return ResponseEntity.ok("Rol desactivado con éxito");
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("No se puede")) {
-                return ResponseEntity.status(400).body(e.getMessage());
-            }
-            return ResponseEntity.status(404).body(e.getMessage());
-        }
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        rolesService.eliminarLogico(id);
+        return ResponseEntity.noContent().build();
     }
 }

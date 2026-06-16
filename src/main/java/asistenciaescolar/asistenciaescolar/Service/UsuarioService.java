@@ -1,108 +1,114 @@
 package asistenciaescolar.asistenciaescolar.Service;
 
-// Modelos y Repositorios propios
+import asistenciaescolar.asistenciaescolar.Dto.dtoUsuario;
 import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Model.Usuario;
 import asistenciaescolar.asistenciaescolar.Model.UsuarioRoles;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryRoles;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryUsuario;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryUsuarioRoles;
-
-// Spring Framework y Stereotypes
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-// Seguridad (BCrypt y PasswordEncoder)
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-// Utilidades de Java
+import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class UsuarioService {
 
-    @Autowired
-    private RepositoryUsuario repositoryUsuario;
+    private final RepositoryUsuario repositoryUsuario;
+    private final PasswordEncoder passwordEncoder;
+    private final RepositoryRoles repositoryRoles;
+    private final RepositoryUsuarioRoles repositoryUsuarioRoles;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private RepositoryRoles repositoryRoles;
-
-    @Autowired
-    private RepositoryUsuarioRoles repositoryUsuarioRoles;
-
+    @Transactional
     public List<Usuario> listarTodos() {
         return repositoryUsuario.findAll();
     }
 
+    @Transactional
     public Usuario obtenerPorId(Integer id) {
-        return repositoryUsuario.findById(id).orElse(null);
+        return repositoryUsuario.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con el ID: " + id));
     }
 
-    // --- FUNCIONALIDAD DE CREACIÓN ---
     @Transactional
-    public void crearUsuario(Usuario usuario, List<Integer> rolesIds) {
-        // 1. VALIDACIÓN DE DUPLICADOS (Backend)
-        if (repositoryUsuario.existsByEmail(usuario.getEmail())) {
-            throw new RuntimeException("El correo electrónico ya está registrado.");
+    public List<Roles> obtenerRolesDisponibles() {
+        return repositoryRoles.findAll();
+    }
+
+    @Transactional
+    public Usuario crearUsuarioDesdeDto(dtoUsuario dto) {
+        // 1. VALIDACIÓN DE DUPLICADOS
+        if (dto.getEmail() == null || dto.getEmail().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El correo electrónico es obligatorio.");
+        }
+        if (repositoryUsuario.existsByEmail(dto.getEmail().trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo electrónico ya está registrado.");
         }
 
-        // 2. Configuraciones básicas
-        usuario.setContraseña(passwordEncoder.encode(usuario.getContraseña()));
+        // 2. Mapear DTO a la Entidad Usuario
+        Usuario usuario = new Usuario();
+        usuario.setNombre(dto.getNombre());
+        usuario.setApellidoPaterno(dto.getApellidoPaterno());
+        usuario.setApellidoMaterno(dto.getApellidoMaterno());
+        usuario.setEmail(dto.getEmail());
+        usuario.setContraseña(passwordEncoder.encode(dto.getContraseña()));
         usuario.setFechaCreacion(LocalDateTime.now());
-        usuario.setEstado((short) 1);
+        usuario.setEstado(dto.getEstado() != null ? dto.getEstado() : (short) 1);
 
-        // 3. Obtener letra del primer rol para el código
-        String letraRol = obtenerLetraPrimerRol(rolesIds);
+        // 3. Obtener letra del primer rol para el código generado de forma dinámica
+        String letraRol = obtenerLetraPrimerRol(dto.getRolesIds());
         usuario.setCodigUsuario(generarCodigoConRol(usuario, letraRol));
 
-        // 4. GUARDAR AL USUARIO
+        // 4. GUARDAR USUARIO
         Usuario usuarioGuardado = repositoryUsuario.save(usuario);
 
         // 5. VINCULAR ROLES
-        vincularRoles(usuarioGuardado, rolesIds);
+        vincularRoles(usuarioGuardado, dto.getRolesIds());
+
+        return usuarioGuardado;
     }
 
-    // --- FUNCIONALIDAD DE ACTUALIZACIÓN ---
     @Transactional
-    public void actualizarUsuario(Usuario usuario, List<Integer> rolesIds) {
-        Usuario usuarioExistente = repositoryUsuario.findById(usuario.getIdUsuario())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public Usuario actualizarUsuarioDesdeDto(Integer id, dtoUsuario dto) {
+        // 1. Obtener el usuario existente o lanzar 404
+        Usuario usuarioExistente = obtenerPorId(id);
 
-        // 1. Manejo de contraseña (solo si se envía una nueva)
-        if (usuario.getContraseña() != null && !usuario.getContraseña().isEmpty()) {
-            usuarioExistente.setContraseña(passwordEncoder.encode(usuario.getContraseña()));
+        // 2. Manejo de contraseña (solo si se envía una nueva en el DTO)
+        if (dto.getContraseña() != null && !dto.getContraseña().trim().isEmpty()) {
+            usuarioExistente.setContraseña(passwordEncoder.encode(dto.getContraseña()));
         }
 
-        // 2. Actualizar datos personales
-        usuarioExistente.setNombre(usuario.getNombre());
-        usuarioExistente.setApellidoPaterno(usuario.getApellidoPaterno());
-        usuarioExistente.setApellidoMaterno(usuario.getApellidoMaterno());
-        usuarioExistente.setEmail(usuario.getEmail());
-        usuarioExistente.setEstado(usuario.getEstado());
+        // 3. Actualizar datos personales desde el DTO
+        usuarioExistente.setNombre(dto.getNombre());
+        usuarioExistente.setApellidoPaterno(dto.getApellidoPaterno());
+        usuarioExistente.setApellidoMaterno(dto.getApellidoMaterno());
+        usuarioExistente.setEmail(dto.getEmail());
+        if (dto.getEstado() != null) {
+            usuarioExistente.setEstado(dto.getEstado());
+        }
 
-        // 3. Actualizar Roles (Limpiar y Reasignar)
-        if (rolesIds != null) {
+        // 4. Actualizar Roles (Limpiar y Reasignar si viene la lista)
+        if (dto.getRolesIds() != null) {
             repositoryUsuarioRoles.deleteByUsuario(usuarioExistente);
-            vincularRoles(usuarioExistente, rolesIds);
+            vincularRoles(usuarioExistente, dto.getRolesIds());
         }
 
-        repositoryUsuario.save(usuarioExistente);
+        return repositoryUsuario.save(usuarioExistente);
     }
-
-    // --- FUNCIONES DE APOYO (Privadas) ---
 
     private void vincularRoles(Usuario usuario, List<Integer> rolesIds) {
         if (rolesIds != null && !rolesIds.isEmpty()) {
             List<UsuarioRoles> vinculaciones = new ArrayList<>();
             for (Integer rolId : rolesIds) {
                 Roles rol = repositoryRoles.findById(rolId)
-                        .orElseThrow(() -> new RuntimeException("Rol con ID " + rolId + " no encontrado"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol con ID " + rolId + " no encontrado"));
 
                 UsuarioRoles ur = new UsuarioRoles();
                 ur.setUsuario(usuario);
@@ -123,6 +129,12 @@ public class UsuarioService {
         return "U";
     }
 
+    @Transactional(readOnly = true)
+    public Usuario obtenerPorCodigoUsuario(String codigUsuario) {
+        return repositoryUsuario.findByCodigUsuario(codigUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con el código: " + codigUsuario));
+    }
+
     private String generarCodigoConRol(Usuario u, String letraRol) {
         String n = (u.getNombre() != null && !u.getNombre().isEmpty())
                 ? u.getNombre().substring(0, 1).toUpperCase() : "X";
@@ -136,11 +148,12 @@ public class UsuarioService {
         return letraRol + n + ap + anio + randomPart;
     }
 
+    @Transactional
     public void eliminarLogico(Integer id) {
-        Usuario usuario = repositoryUsuario.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        // Reutilizamos obtenerPorId (Asegura el control del 404)
+        Usuario usuario = obtenerPorId(id);
 
-        usuario.setEstado((short)2); // 2 = Eliminado/Inactivo permanentemente
+        usuario.setEstado((short) 2); // 2 = Eliminado/Inactivo permanentemente
         repositoryUsuario.save(usuario);
     }
 }

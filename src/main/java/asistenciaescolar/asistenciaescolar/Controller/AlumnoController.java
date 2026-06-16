@@ -8,7 +8,9 @@ import asistenciaescolar.asistenciaescolar.Model.Seccion;
 import asistenciaescolar.asistenciaescolar.Service.AlumnoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +21,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/alumnos")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 @Tag(name = "Alumnos", description = "Crud de Alumnos y algunso filtros")
 public class AlumnoController {
 
-    @Autowired
-    private AlumnoService alumnoService;
+    private final AlumnoService alumnoService;
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener alumno por ID")
@@ -47,7 +49,7 @@ public class AlumnoController {
     public ResponseEntity<Alumno> registrar(
             @RequestPart("alumno") dtoAlumno dto,
             @RequestPart(value = "foto", required = false) MultipartFile foto) {
-        return ResponseEntity.ok(alumnoService.guardarAlumno(dto, foto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(alumnoService.guardarAlumno(dto, foto));
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -73,12 +75,8 @@ public class AlumnoController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar alumnos de manera logica")
-    public ResponseEntity<String> eliminarAlumno(@PathVariable Integer id) {
-        try {
-            alumnoService.eliminarLogico(id);
-            return ResponseEntity.ok("Alumno dado de baja correctamente (Estado 2)");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error al eliminar: " + e.getMessage());
-        }
+    public ResponseEntity<Void> eliminarAlumno(@PathVariable Integer id) {
+        alumnoService.eliminarLogico(id);
+        return ResponseEntity.noContent().build();
     }
 }

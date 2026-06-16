@@ -6,8 +6,10 @@ import asistenciaescolar.asistenciaescolar.Model.*;
 import asistenciaescolar.asistenciaescolar.Repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -40,18 +42,17 @@ public class AlumnoService {
     public Alumno guardarAlumno(dtoAlumno dto, MultipartFile foto) {
         // 1. Validamos que el DNI único no exista para evitar errores de duplicidad
         if (alumnoRepository.existsByDni(dto.getDni())) {
-            throw new RuntimeException("El DNI " + dto.getDni() + " ya está registrado en el sistema.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI " + dto.getDni() + " ya está registrado en el sistema.");
         }
-        // 2. Guardar al Alumno primero
         Alumno alumno = new Alumno();
         // 2. Si el frontend envía una foto, la subimos a su carpeta estructurada antes de guardar en BD
         if (foto != null && !foto.isEmpty()) {
             try {
                 // Buscamos los nombres de grado y sección para la subcarpeta automática
                 Grado grado = gradoRepository.findById(dto.getIdGrado())
-                        .orElseThrow(() -> new RuntimeException("Grado no encontrado"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
                 Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
-                        .orElseThrow(() -> new RuntimeException("Sección no encontrada"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sección no encontrada"));
 
                 // Limpiamos el texto (minúsculas, sin espacios) siguiendo buenas prácticas
                 String folderEstructurado = "alumnos/" +
@@ -65,15 +66,17 @@ public class AlumnoService {
                 dto.setRutaFoto((String) result.get("secure_url"));
                 alumno.setFotoPublicId((String) result.get("public_id"));
 
+            } catch (ResponseStatusException e) {
+                // Si el error fue un 404 de Grado/Sección, lo dejamos pasar directamente
+                throw e;
             } catch (Exception e) {
-                throw new RuntimeException("Error al subir la foto de perfil a Cloudinary: " + e.getMessage());
+                // Si falla la conexión con Cloudinary, devolvemos un INTERNAL_SERVER_ERROR controlado
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al subir la foto de perfil: " + e.getMessage());
             }
         } else {
-            dto.setRutaFoto("default-profile.png"); // Foto por defecto si no suben nada
         }
         Alumno alumnoGuardado = mapearYGuardar(alumno, dto);
 
-        // 3. CONTROL INTELIGENTE DEL APODERADO POR DNI (¡Aquí llamamos al método modular!)
         procesarYAsociarApoderado(alumnoGuardado, dto);
 
         return alumnoGuardado;
@@ -81,7 +84,7 @@ public class AlumnoService {
 
     public dtoAlumno obtenerPorId(Integer id) {
         Alumno alumno = alumnoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Alumno no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado con ID: " + id));
         return convertirADto(alumno);
     }
 
@@ -89,22 +92,20 @@ public class AlumnoService {
     @Transactional
     public Alumno actualizarAlumno(Integer id, dtoAlumno dto, MultipartFile nuevaFoto) {
         Alumno alumnoExistente = alumnoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Alumno no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado con ID: " + id));
         if (!alumnoExistente.getDni().equals(dto.getDni()) && alumnoRepository.existsByDni(dto.getDni())) {
-            throw new RuntimeException("El DNI " + dto.getDni() + " ya pertenece a otro alumno.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI " + dto.getDni() + " ya pertenece a otro alumno.");
         }
         if (nuevaFoto != null && !nuevaFoto.isEmpty()) {
             try {
-                // 1. Borramos la foto anterior si tenía un ID válido registrado
                 if (alumnoExistente.getFotoPublicId() != null && !alumnoExistente.getFotoPublicId().isEmpty()) {
                     storageService.deleteFile(alumnoExistente.getFotoPublicId());
                 }
 
-                // 2. Estructuramos la ruta dinámica para la nueva ubicación
                 Grado grado = gradoRepository.findById(dto.getIdGrado())
-                        .orElseThrow(() -> new RuntimeException("Grado no encontrado"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
                 Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
-                        .orElseThrow(() -> new RuntimeException("Sección no encontrada"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seccion no encontrado"));
 
                 String folderEstructurado = "alumnos/" +
                         grado.getGrado().toLowerCase().trim().replace(" ", "-") + "/" +
@@ -117,17 +118,16 @@ public class AlumnoService {
                 dto.setRutaFoto((String) result.get("secure_url"));
                 alumnoExistente.setFotoPublicId((String) result.get("public_id"));
 
+            } catch (ResponseStatusException e) {
+                throw e;
             } catch (Exception e) {
-                throw new RuntimeException("Error al actualizar la foto en Cloudinary: " + e.getMessage());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al actualizar la foto: " + e.getMessage());
             }
         } else {
-            // Si no se envía una nueva foto, conserva la ruta de la foto que ya tenía
             dto.setRutaFoto(alumnoExistente.getRutaFoto());
         }
-        // Actualizamos los datos propios del alumno
         Alumno alumnoActualizado = mapearYGuardar(alumnoExistente, dto);
 
-        // Si el frontend envía datos de apoderado en la edición, procesamos la asignación
         procesarYAsociarApoderado(alumnoActualizado, dto);
 
         return alumnoActualizado;
@@ -135,11 +135,8 @@ public class AlumnoService {
 
     // Este es el que ahora llama tu controlador en la línea 25
     public List<dtoAlumno> listarAlumnosConApoderados(String nombre, Integer idGrado, Integer idSeccion, Integer estado) {
-        // 1. Aquí se ejecuta exactamente tu misma lógica de limpiar el nombre para el LIKE
         String nombreBusqueda = (nombre != null && !nombre.trim().isEmpty()) ? nombre : null;
         List<Alumno> alumnos = alumnoRepository.buscarConFiltros(nombreBusqueda, idGrado, idSeccion, estado);
-
-        // 2. Convertimos esos alumnos filtrados a tu dtoAlumno (recolectando sus apoderados)
         return alumnos.stream().map(this::convertirADto).toList();
     }
 
@@ -147,11 +144,9 @@ public class AlumnoService {
         String nuevoCodigo;
         boolean existe;
         do {
-            // Ejemplo: ALU seguido de 6 números aleatorios (entre 100000 y 999999)
             int numero = (int)(Math.random() * 900000) + 100000;
             nuevoCodigo = "ALU" + numero;
 
-            // Verificamos en la BD que no exista ya ese código plano
             existe = alumnoRepository.existsByCodigoUnico(nuevoCodigo);
         } while (existe);
 
@@ -168,11 +163,10 @@ public class AlumnoService {
         alumno.setFechaNaci(dto.getFechaNaci());
 
 
-        // Control inteligente de la ruta de la foto
         if (dto.getRutaFoto() == null || dto.getRutaFoto().isEmpty()) {
-            alumno.setRutaFoto("default-profile.png"); // Valor por defecto si no hay foto en el DTO
+            alumno.setRutaFoto("default-profile.png");
         } else {
-            alumno.setRutaFoto(dto.getRutaFoto()); // Asigna la URL de Cloudinary inyectada previamente
+            alumno.setRutaFoto(dto.getRutaFoto());
         }
 
         if (alumno.getIdAlumno() == null) {
@@ -181,16 +175,15 @@ public class AlumnoService {
             alumno.setCodigoHash(hashearTexto(codigoPlano));
         }
 
-        // El estado lo recibes como 0, 1 o 2
-        alumno.setEstado(dto.getEstado() != null ? dto.getEstado() : 1); // 1 (Activo) por defecto
+        alumno.setEstado(dto.getEstado() != null ? dto.getEstado() : 1);
 
         // Buscamos las entidades relacionadas
         Turno turno = turnoRepository.findById(dto.getIdTurno())
-                .orElseThrow(() -> new RuntimeException("Turno no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turno no encontrado"));
         Grado grado = gradoRepository.findById(dto.getIdGrado())
-                .orElseThrow(() -> new RuntimeException("Grado no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
         Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
-                .orElseThrow(() -> new RuntimeException("Sección no encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seccion no encontrado"));
 
         alumno.setTurno(turno);
         alumno.setGrado(grado);
@@ -210,7 +203,7 @@ public class AlumnoService {
     public void eliminarLogico(Integer id) {
         // 1. Buscamos al alumno
         Alumno alumno = alumnoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No se encontró el alumno con ID: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró el alumno con ID: " + id));
 
         // 2. Cambiamos solo el estado a 2
         alumno.setEstado(2);
@@ -222,16 +215,13 @@ public class AlumnoService {
     // Método privado auxiliar para reutilizar la lógica del apoderado tanto en crear como en editar
     private void procesarYAsociarApoderado(Alumno alumno, dtoAlumno dto) {
 
-        // =========================================================================
         // CASO C: (NUEVO) El frontend mandó los apoderados ya vinculados en la lista de 'apoderadosAsignados'
-        // Sirve para actualizar directamente los datos de los padres actuales del alumno
-        // =========================================================================
         if (dto.getApoderadosAsignados() != null && !dto.getApoderadosAsignados().isEmpty()) {
             for (dtoApoderado dtoAp : dto.getApoderadosAsignados()) {
                 if (dtoAp.getIdApoderado() != null) {
                     // 1. Buscamos el apoderado existente por su ID
                     Apoderado apoderadoExistente = apoderadoRepository.findById(dtoAp.getIdApoderado())
-                            .orElseThrow(() -> new RuntimeException("El apoderado con ID " + dtoAp.getIdApoderado() + " no existe."));
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El apoderado con ID " + dtoAp.getIdApoderado() + " no existe."));
 
                     // 2. Validamos que si se cambió el DNI en el input, no choque con otra persona en la BD
                     if (dtoAp.getDni() != null) {
@@ -239,7 +229,7 @@ public class AlumnoService {
                         String dniEnBD = apoderadoExistente.getDni().trim(); // <-- Limpiamos espacios de la BD
 
                         if (!dniEnBD.equals(dniApoderado) && apoderadoRepository.existsByDni(dniApoderado)) {
-                            throw new RuntimeException("El DNI " + dniApoderado + " ya pertenece a otro apoderado.");
+                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI " + dniApoderado + " ya pertenece a otro apoderado.");
                         }
                         apoderadoExistente.setDni(dniApoderado);
                     }
@@ -254,7 +244,7 @@ public class AlumnoService {
 
                     // Buscamos la relación intermedia existente entre este alumno y este apoderado
                     AlumnoApoderado relacionIntermedia = alumnoApoderadoRepository.findByAlumnoAndApoderado(alumno, apoderadoExistente)
-                            .orElseThrow(() -> new RuntimeException("Relación alumno-apoderado no encontrada."));
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relación alumno-apoderado no encontrada."));
 
                     // Si el frontend mandó el valor, lo actualizamos (si viene null, por defecto false)
                     relacionIntermedia.setEsPrincipal(dtoAp.getEsPrincipal() != null ? dtoAp.getEsPrincipal() : false);
@@ -263,13 +253,11 @@ public class AlumnoService {
             }
         }
 
-        // =========================================================================
         // CASO A: El frontend mandó una lista de IDs de apoderados que ya existen
-        // =========================================================================
         if (dto.getIdsApoderados() != null && !dto.getIdsApoderados().isEmpty()) {
             for (dtoApoderado dtoAp : dto.getIdsApoderados()) {
                 Apoderado apoderadoExistente = apoderadoRepository.findById(dtoAp.getIdApoderado())
-                        .orElseThrow(() -> new RuntimeException("El ID de apoderado " + dtoAp.getIdApoderado() + " no existe."));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El ID de apoderado " + dtoAp.getIdApoderado() + " no existe."));
 
                 // Si ya existe la relación, la recuperamos; si no, la creamos
                 AlumnoApoderado relacion = alumnoApoderadoRepository.findByAlumnoAndApoderado(alumno, apoderadoExistente)
@@ -281,16 +269,13 @@ public class AlumnoService {
             }
         }
 
-        // =========================================================================
         // CASO B: El frontend mandó una lista de formularios de apoderados nuevos
-        // =========================================================================
         if (dto.getApoderadosNuevos() != null && !dto.getApoderadosNuevos().isEmpty()) {
             for (dtoApoderado dtoAp : dto.getApoderadosNuevos()) {
                 if (dtoAp.getDni() != null) {
                     String dniApoderado = dtoAp.getDni().trim();
                     Apoderado apoderadoFinal;
 
-                    // Si el DNI ya existe, lo recuperamos Y ACTUALIZAMOS sus datos de contacto
                     if (apoderadoRepository.existsByDni(dniApoderado)) {
                         apoderadoFinal = apoderadoRepository.findByDni(dniApoderado).get();
 
@@ -301,9 +286,8 @@ public class AlumnoService {
                         apoderadoFinal.setCelular(dtoAp.getCelular());
                         apoderadoFinal.setEmail(dtoAp.getEmail());
 
-                        apoderadoFinal = apoderadoRepository.save(apoderadoFinal); // Guarda los cambios del padre
+                        apoderadoFinal = apoderadoRepository.save(apoderadoFinal);
                     } else {
-                        // Si no existe, registramos al nuevo apoderado
                         Apoderado nuevoApoderado = new Apoderado();
                         nuevoApoderado.setDni(dniApoderado);
                         nuevoApoderado.setNombre(dtoAp.getNombre());
@@ -315,7 +299,6 @@ public class AlumnoService {
                         apoderadoFinal = apoderadoRepository.save(nuevoApoderado);
                     }
 
-                    // Al crear el enlace en la intermedia, le inyectamos la prioridad
                     AlumnoApoderado relacion = alumnoApoderadoRepository.findByAlumnoAndApoderado(alumno, apoderadoFinal)
                             .orElse(new AlumnoApoderado(alumno, apoderadoFinal));
 
@@ -350,15 +333,14 @@ public class AlumnoService {
         }
 
         if (alumno.getGrado() != null) {
-            dto.setGrado(alumno.getGrado()); // Esto le dará el objeto completo con ID y Nombre al Front
-            dto.setIdGrado(alumno.getGrado().getIdGrado()); // Dejamos el ID plano por si acaso
+            dto.setGrado(alumno.getGrado());
+            dto.setIdGrado(alumno.getGrado().getIdGrado());
         }
         if (alumno.getSeccion() != null) {
-            dto.setSeccion(alumno.getSeccion()); // Esto le dará el objeto completo con ID y Nombre al Front
-            dto.setIdSeccion(alumno.getSeccion().getIdSeccion()); // Dejamos el ID plano por si acaso
+            dto.setSeccion(alumno.getSeccion());
+            dto.setIdSeccion(alumno.getSeccion().getIdSeccion());
         }
 
-        // Mapeamos los apoderados asignados recorriendo la intermedia
         if (alumno.getAlumnoApoderados() != null) {
             List<dtoApoderado> listaApoderados = alumno.getAlumnoApoderados().stream()
                     .map(relacion -> {
@@ -396,7 +378,7 @@ public class AlumnoService {
             }
             return hexString.toString(); // Retorna la cadena de 64 caracteres
         } catch (Exception ex) {
-            throw new RuntimeException("Error crítico al generar el hash del código único.", ex);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error crítico al generar el hash de seguridad.", ex);
         }
     }
 }

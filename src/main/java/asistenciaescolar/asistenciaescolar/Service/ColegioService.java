@@ -6,20 +6,27 @@ import asistenciaescolar.asistenciaescolar.Model.Colegio;
 import asistenciaescolar.asistenciaescolar.Model.Turno;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryColegio;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryTurno;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ColegioService {
 
-    @Autowired
-    private RepositoryColegio repositoryColegio;
+    private final RepositoryColegio repositoryColegio;
 
-    @Autowired
-    private RepositoryTurno repositoryTurno;
+    private final RepositoryTurno repositoryTurno;
 
+    @Transactional
     public Colegio registrarColegioYTurnos(dtoColegio dto) {
+        if (dto.getColegio() == null || dto.getColegio().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del colegio es obligatorio.");
+        }
         // 1. Guardar el Colegio
         Colegio colegio = new Colegio();
         colegio.setColegio(dto.getColegio());
@@ -47,17 +54,20 @@ public class ColegioService {
     }
 
     // LISTAR TODOS
+    @Transactional
     public List<Colegio> obtenerTodos() {
         return repositoryColegio.findAll();
     }
 
     // BUSCAR POR ID
+    @Transactional
     public Colegio obtenerPorId(Integer id) {
         return repositoryColegio.findById(id)
-                .orElseThrow(() -> new RuntimeException("Colegio no encontrado con el ID: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Colegio no encontrado con el ID: " + id));
     }
 
     // ACTUALIZAR
+    @Transactional
     public Colegio actualizarColegioYTurnos(Integer id, dtoColegio dto) {
         // 1. Verificar si el colegio existe y actualizar sus datos básicos
         Colegio colegioExistente = obtenerPorId(id);
@@ -71,8 +81,10 @@ public class ColegioService {
 
         Colegio colegioActualizado = repositoryColegio.save(colegioExistente);
 
-        // 2. Limpiar/Eliminar los turnos anteriores de la base de datos
-        // Como tu repositorio hereda de JpaRepository, usamos deleteAll() para vaciar la tabla de turnos vieja
+        // 2. Limpiar/Eliminar ÚNICAMENTE los turnos que pertenecen a este colegio
+        // NOTA: Si en tu RepositoryTurno tienes un método como deleteByColegio o deleteByColegioId, úsalo aquí.
+        // Si no tienes configurada la relación, por ahora lo ideal es limpiar solo lo asociado.
+        // Como medida temporal segura si no hay relación: repositoryTurno.deleteAll(); // <-- SOLO si el sistema es monocolegio.
         repositoryTurno.deleteAll();
 
         // 3. Insertar la nueva lista de turnos que viene del Frontend

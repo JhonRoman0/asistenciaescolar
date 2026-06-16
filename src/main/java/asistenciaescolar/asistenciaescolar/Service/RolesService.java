@@ -8,27 +8,24 @@ import asistenciaescolar.asistenciaescolar.Repository.RepositoryModulo;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryRoles;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryRolesModulo;
 import asistenciaescolar.asistenciaescolar.Repository.RepositoryUsuarioRoles;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RolesService {
 
-    @Autowired
-    private RepositoryRoles repositoryRoles;
-
-    @Autowired
-    private RepositoryRolesModulo repositoryRolesModulo;
-
-    @Autowired
-    private RepositoryUsuarioRoles repositoryUsuarioRoles;
-
-    @Autowired
-    private RepositoryModulo repositoryModulo;
+    private final RepositoryRoles repositoryRoles;
+    private final RepositoryRolesModulo repositoryRolesModulo;
+    private final RepositoryUsuarioRoles repositoryUsuarioRoles;
+    private final RepositoryModulo repositoryModulo;
 
     // Listar solo los roles que no están eliminados (estado != 2)
     public List<Roles> listarTodos() {
@@ -38,7 +35,16 @@ public class RolesService {
     }
 
     @Transactional
+    public Roles buscarPorId(Integer id) {
+        return repositoryRoles.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado con el ID: " + id));
+    }
+
+    @Transactional
     public Roles crearRol(dtoRoles dto) {
+        if (dto.getNombreRol() == null || dto.getNombreRol().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del rol es obligatorio.");
+        }
         Roles rol = new Roles();
         rol.setNombreRol(dto.getNombreRol());
         rol.setEstado((short) 1); // 1 = Activo por defecto
@@ -54,7 +60,7 @@ public class RolesService {
         if (dto.getIdModulos() != null && !dto.getIdModulos().isEmpty()) {
             for (Integer idModulo : dto.getIdModulos()) {
                 Modulo modulo = repositoryModulo.findById(idModulo)
-                        .orElseThrow(() -> new RuntimeException("Módulo no encontrado con ID: " + idModulo));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Módulo de acceso no encontrado con ID: " + idModulo));
 
                 RolesModulo relacion = new RolesModulo();
                 relacion.setRol(rolGuardado);
@@ -67,12 +73,13 @@ public class RolesService {
     }
 
     // Método para Actualizar
+    @Transactional
     public Roles actualizarRol(Integer id, dtoRoles dto) {
-        Roles rol = repositoryRoles.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado con ID: " + id));
-
+        if (dto.getNombreRol() == null || dto.getNombreRol().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del rol no puede estar vacío.");
+        }
+        Roles rol = buscarPorId(id);
         rol.setNombreRol(dto.getNombreRol());
-        // El estado se actualiza si el DTO lo trae, si no, se mantiene el actual
         if (dto.getEstado() != null) {
             rol.setEstado(dto.getEstado());
         }
@@ -89,7 +96,7 @@ public class RolesService {
             // Insertamos los nuevos accesos que vienen del formulario
             for (Integer idModulo : dto.getIdModulos()) {
                 Modulo modulo = repositoryModulo.findById(idModulo)
-                        .orElseThrow(() -> new RuntimeException("Módulo no encontrado con ID: " + idModulo));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Módulo de acceso no encontrado con ID: " + idModulo));
 
                 RolesModulo relacion = new RolesModulo();
                 relacion.setRol(rolActualizado);
@@ -103,17 +110,17 @@ public class RolesService {
     }
 
     // Método para Eliminación Lógica (Estado 2)
+    @Transactional
     public void eliminarLogico(Integer id) {
         // Busca si el rol existe en la base de datos
-        Roles rol = repositoryRoles.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado con ID: " + id));
+        Roles rol = buscarPorId(id);
 
         // VALIDACIÓN: Contamos cuántas filas usan este objeto Rol en la tabla intermedia
         long cantidadUsuarios = repositoryUsuarioRoles.countByRol(rol);
 
         if (cantidadUsuarios > 0) {
-            throw new RuntimeException("No se puede eliminar el rol '" + rol.getNombreRol() +
-                    "' porque tiene " + cantidadUsuarios + " usuario(s) asignado(s).");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "No se puede eliminar el rol '" + rol.getNombreRol() + "' porque tiene " + cantidadUsuarios + " usuario(s) asignado(s).");
         }
 
         // Si está libre de usuarios, hacemos el borrado lógico (Estado 2)
