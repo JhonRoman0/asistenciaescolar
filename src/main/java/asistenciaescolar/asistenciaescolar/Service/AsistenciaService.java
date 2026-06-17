@@ -130,15 +130,24 @@ public class AsistenciaService {
     // ==========================================
 
     private Alumno buscarAlumnoPorRequest(dtoAsistenciaRequest request) {
+        Alumno alumno;
+
         if (request.getCodigoHash() != null && !request.getCodigoHash().isEmpty()) {
-            return alumnoRepository.findByCodigoHash(request.getCodigoHash())
+            alumno = alumnoRepository.findByCodigoHash(request.getCodigoHash())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Código QR no válido."));
         } else if (request.getCodigoUnico() != null && !request.getCodigoUnico().isEmpty()) {
-            return alumnoRepository.findByCodigoUnico(request.getCodigoUnico())
+            alumno = alumnoRepository.findByCodigoUnico(request.getCodigoUnico())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Código único de alumno no encontrado."));
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe escanear un QR o ingresar un código manual.");
         }
+
+        if (alumno.getEstado() == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso Denegado: El alumno ha sido dado de baja del sistema.");
+        } else if (alumno.getEstado() == 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso Denegado: El alumno se encuentra suspendido actualmente.");
+        }
+        return alumno;
     }
 
     private Integer calcularIdEstado(LocalTime horaActual, Turno turno) {

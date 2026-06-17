@@ -1,6 +1,8 @@
 package asistenciaescolar.asistenciaescolar.Controller;
 
 
+import asistenciaescolar.asistenciaescolar.Dto.DniData;
+import asistenciaescolar.asistenciaescolar.Dto.DniResponse;
 import asistenciaescolar.asistenciaescolar.Dto.dtoAlumno;
 import asistenciaescolar.asistenciaescolar.Model.Alumno;
 import asistenciaescolar.asistenciaescolar.Model.Grado;
@@ -15,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -78,5 +81,14 @@ public class AlumnoController {
     public ResponseEntity<Void> eliminarAlumno(@PathVariable Integer id) {
         alumnoService.eliminarLogico(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/buscar-dni/{dni}")
+    @Operation(summary = "Consulta datos de alumno por DNI")
+    public ResponseEntity<DniData> consultarDni(@PathVariable String dni) {
+        if (dni == null || dni.length() != 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI debe tener 8 dígitos");
+        }
+        return ResponseEntity.ok(alumnoService.obtenerDatosPorDni(dni));
     }
 }

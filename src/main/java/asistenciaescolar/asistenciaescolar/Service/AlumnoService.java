@@ -1,15 +1,20 @@
 package asistenciaescolar.asistenciaescolar.Service;
 
+import asistenciaescolar.asistenciaescolar.Config.DniApiException;
+import asistenciaescolar.asistenciaescolar.Dto.DniData;
+import asistenciaescolar.asistenciaescolar.Dto.DniResponse;
 import asistenciaescolar.asistenciaescolar.Dto.dtoAlumno;
 import asistenciaescolar.asistenciaescolar.Dto.dtoApoderado;
 import asistenciaescolar.asistenciaescolar.Model.*;
 import asistenciaescolar.asistenciaescolar.Repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -36,6 +41,12 @@ public class AlumnoService {
 
     @Autowired
     private StorageService storageService;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${api.dni.token}")
+    private String apiToken;
 
     // 1. Método para REGISTRAR
     @Transactional
@@ -379,6 +390,20 @@ public class AlumnoService {
             return hexString.toString(); // Retorna la cadena de 64 caracteres
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error crítico al generar el hash de seguridad.", ex);
+        }
+    }
+
+    // Cambia DniResponse por DniData en la firma del método
+    public DniData obtenerDatosPorDni(String dni) {
+        String url = "https://apiperu.dev/api/dni/" + dni + "?api_token=" + apiToken;
+
+        // Aquí recibes el contenedor completo (la caja)
+        DniResponse respuesta = restTemplate.getForObject(url, DniResponse.class);
+
+        if (respuesta != null && respuesta.isSuccess()) {
+            return respuesta.getData(); // Esto ahora sí coincide con DniData
+        } else {
+            throw new DniApiException("No se encontró el DNI o la API falló.");
         }
     }
 }

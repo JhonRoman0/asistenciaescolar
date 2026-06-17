@@ -36,4 +36,14 @@ public class GlobalException {
 
         return new ResponseEntity<>(respuesta, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(DniApiException.class)
+    public ResponseEntity<Map<String, Object>> manejarDniError(DniApiException ex) {
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("timestamp", LocalDateTime.now().toString());
+        respuesta.put("status", HttpStatus.SERVICE_UNAVAILABLE.value());
+        respuesta.put("error", "Error en Servicio de Validación");
+        respuesta.put("message", ex.getMessage());
+        return new ResponseEntity<>(respuesta, HttpStatus.SERVICE_UNAVAILABLE);
+    }
 }
