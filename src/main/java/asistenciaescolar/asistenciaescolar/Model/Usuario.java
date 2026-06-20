@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,6 +34,7 @@ public class Usuario {
     @Column(nullable = false)
     private String codigUsuario;
     @OneToMany(mappedBy = "usuario", fetch = FetchType.EAGER)
+    @JsonManagedReference
     private Set<UsuarioRoles> usuarioRoles;
 
 }

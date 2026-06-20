@@ -2,6 +2,7 @@ package asistenciaescolar.asistenciaescolar.Model;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,7 +21,7 @@ public class UsuarioRoles {
 
     @ManyToOne
     @JoinColumn(name = "idUsuario",nullable = false)
-    @JsonIgnore
+    @JsonManagedReference
     private Usuario usuario;
 
     @ManyToOne
