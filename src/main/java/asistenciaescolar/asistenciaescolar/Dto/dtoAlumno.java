@@ -27,7 +27,7 @@ public class dtoAlumno {
     private Turno turno;
     private  String codigoHash;
 
-    private List<dtoApoderado> idsApoderados;
+    private List<Integer> idsApoderados;
     private List<dtoApoderado> apoderadosNuevos;
     private List<dtoApoderado> apoderadosAsignados;
 }

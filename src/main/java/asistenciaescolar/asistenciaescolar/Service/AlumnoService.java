@@ -217,7 +217,7 @@ public class AlumnoService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró el alumno con ID: " + id));
 
         // 2. Cambiamos solo el estado a 2
-        alumno.setEstado(2);
+        alumno.setEstado(0);
 
         // 3. Guardamos los cambios
         alumnoRepository.save(alumno);
@@ -266,16 +266,18 @@ public class AlumnoService {
 
         // CASO A: El frontend mandó una lista de IDs de apoderados que ya existen
         if (dto.getIdsApoderados() != null && !dto.getIdsApoderados().isEmpty()) {
-            for (dtoApoderado dtoAp : dto.getIdsApoderados()) {
-                Apoderado apoderadoExistente = apoderadoRepository.findById(dtoAp.getIdApoderado())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El ID de apoderado " + dtoAp.getIdApoderado() + " no existe."));
+            for (Integer idApoderado : dto.getIdsApoderados()) {
+                Apoderado apoderadoExistente = apoderadoRepository.findById(idApoderado)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El ID de apoderado " + idApoderado+ " no existe."));
 
                 // Si ya existe la relación, la recuperamos; si no, la creamos
                 AlumnoApoderado relacion = alumnoApoderadoRepository.findByAlumnoAndApoderado(alumno, apoderadoExistente)
                         .orElse(new AlumnoApoderado(alumno, apoderadoExistente));
 
                 // Seteamos si es principal o secundario
-                relacion.setEsPrincipal(dtoAp.getEsPrincipal() != null ? dtoAp.getEsPrincipal() : false);
+                if (relacion.getEsPrincipal() == null) {
+                    relacion.setEsPrincipal(false);
+                }
                 alumnoApoderadoRepository.save(relacion);
             }
         }
@@ -368,6 +370,10 @@ public class AlumnoService {
                     }).toList();
 
             dto.setApoderadosAsignados(listaApoderados);
+            List<Integer> listaIds = alumno.getAlumnoApoderados().stream()
+                    .map(relacion -> relacion.getApoderado().getIdApoderado())
+                    .toList();
+            dto.setIdsApoderados(listaIds);
         }
 
         return dto;
