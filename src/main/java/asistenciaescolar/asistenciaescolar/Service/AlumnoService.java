@@ -18,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class AlumnoService {
@@ -326,7 +327,7 @@ public class AlumnoService {
     // =========================================================================
     // EL METODO QUE TE FALTABA: Convierte la entidad de la BD a tu dtoAlumno
     // =========================================================================
-    private dtoAlumno convertirADto(Alumno alumno) {
+    public dtoAlumno convertirADto(Alumno alumno) {
         dtoAlumno dto = new dtoAlumno();
         dto.setIdAlumno(alumno.getIdAlumno());
         dto.setNombre(alumno.getNombre());
@@ -412,5 +413,9 @@ public class AlumnoService {
         } else {
             throw new DniApiException("No se encontró el DNI o la API falló.");
         }
+    }
+
+    public Optional<Alumno> buscarPorDniEnBD(String dni) {
+        return alumnoRepository.findByDni(dni);
     }
 }

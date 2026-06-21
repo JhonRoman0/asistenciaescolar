@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/alumnos")
@@ -90,5 +91,26 @@ public class AlumnoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI debe tener 8 dígitos");
         }
         return ResponseEntity.ok(alumnoService.obtenerDatosPorDni(dni));
+    }
+
+    @GetMapping("/dni/{dni}")
+    @Operation(summary = "Buscar alumno en BD local por DNI (incluyendo inactivos) para detección de duplicados")
+    public ResponseEntity<dtoAlumno> buscarAlumnoPorDniEnBD(@PathVariable String dni) {
+        // 1. Validación de longitud
+        if (dni == null || dni.trim().length() != 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El DNI debe tener exactamente 8 dígitos");
+        }
+
+        // 2. Buscamos el Optional en el Service
+        Optional<Alumno> alumnoOpt = alumnoService.buscarPorDniEnBD(dni);
+
+        // 3. Extraemos la entidad o lanzamos el error 404 si no existe
+        Alumno alumno = alumnoOpt.orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado en la base de datos local")
+        );
+
+        // 4. Mapeamos a DTO de forma segura y retornamos el HTTP 200 OK
+        dtoAlumno dto = alumnoService.convertirADto(alumno);
+        return ResponseEntity.ok(dto);
     }
 }
