@@ -359,6 +359,7 @@ public class AlumnoService {
                     .map(relacion -> {
                         Apoderado ap = relacion.getApoderado();
                         dtoApoderado dtoAp = new dtoApoderado();
+                        dtoAp.setIdApoderado(ap.getIdApoderado());
                         dtoAp.setDni(ap.getDni());
                         dtoAp.setNombre(ap.getNombre());
                         dtoAp.setApellidoPaterno(ap.getApellidoPaterno());
