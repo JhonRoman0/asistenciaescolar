@@ -97,6 +97,10 @@ public class UsuarioService {
         // 4. Actualizar Roles (Limpiar y Reasignar si viene la lista)
         if (dto.getRolesIds() != null) {
             repositoryUsuarioRoles.deleteByUsuario(usuarioExistente);
+            // ¡AÑADE ESTA LÍNEA! Limpia la colección en memoria para que no haya datos basura
+            if (usuarioExistente.getUsuarioRoles() != null) {
+                usuarioExistente.getUsuarioRoles().clear();
+            }
             vincularRoles(usuarioExistente, dto.getRolesIds());
         }
 

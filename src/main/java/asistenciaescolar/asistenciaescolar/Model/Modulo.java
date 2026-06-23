@@ -15,7 +15,7 @@ public class Modulo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idModulo;
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private String nombre;
     @Column(nullable = false)
     private Short estado;

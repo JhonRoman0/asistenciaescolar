@@ -27,6 +27,10 @@ public class ColegioService {
         if (dto.getColegio() == null || dto.getColegio().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del colegio es obligatorio.");
         }
+        long cantidadColegios = repositoryColegio.count();
+        if (cantidadColegios > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe un colegio registrado en el sistema.");
+        }
         // 1. Guardar el Colegio
         Colegio colegio = new Colegio();
         colegio.setColegio(dto.getColegio());
