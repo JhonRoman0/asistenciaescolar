@@ -86,4 +86,41 @@ public class AuthService {
                 .roles(roles)
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public LoginResponse obtenerRespuestaPorCodigo(String codigUsuario) {
+        Usuario usuario = repositoryUsuario.findByCodigUsuario(codigUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+        List<LoginResponse.RolInfo> roles = usuario.getUsuarioRoles().stream()
+                .filter(ur -> ur.getRol().getEstado() == 1)
+                .map(usuarioRol -> {
+                    var rol = usuarioRol.getRol();
+                    List<LoginResponse.ModuloInfo> modulos = rol.getRolesModulos().stream()
+                            .map(rolModulo -> {
+                                var modulo = rolModulo.getModulo();
+                                return LoginResponse.ModuloInfo.builder()
+                                        .idModulo(modulo.getIdModulo())
+                                        .nombre(modulo.getNombre())
+                                        .build();
+                            }).collect(Collectors.toList());
+
+                    return LoginResponse.RolInfo.builder()
+                            .idRoles(rol.getIdRoles())
+                            .nombreRol(rol.getNombreRol())
+                            .color(rol.getColor())
+                            .modulos(modulos)
+                            .build();
+                }).collect(Collectors.toList());
+
+        return LoginResponse.builder()
+                .idUsuario(usuario.getIdUsuario())
+                .nombre(usuario.getNombre())
+                .apellidoPaterno(usuario.getApellidoPaterno())
+                .apellidoMaterno(usuario.getApellidoMaterno())
+                .email(usuario.getEmail())
+                .codigUsuario(usuario.getCodigUsuario())
+                .roles(roles)
+                .build();
+    }
 }

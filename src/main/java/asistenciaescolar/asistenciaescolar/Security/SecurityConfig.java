@@ -39,6 +39,8 @@ public class SecurityConfig{
 
                         .requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll()
                         .requestMatchers("/api/usuarios/perfil").authenticated()
+                        .requestMatchers("/api/usuarios/perfil-sesion").authenticated()
+                        .requestMatchers("/api/usuarios/logout").authenticated()
 
                         // 2. Endpoints de Usuarios
                         .requestMatchers(HttpMethod.GET, "/api/roles","/api/roles/**").permitAll()
@@ -98,8 +100,8 @@ public class SecurityConfig{
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:3000"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        configuration.setExposedHeaders(List.of("Set-Cookie"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

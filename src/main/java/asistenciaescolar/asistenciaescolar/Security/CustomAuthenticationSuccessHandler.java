@@ -1,3 +1,4 @@
+/*
 package asistenciaescolar.asistenciaescolar.Security;
 
 import asistenciaescolar.asistenciaescolar.Model.Modulo;
@@ -82,3 +83,4 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
         response.sendRedirect(request.getContextPath() + "/dashboard");
     }
 }
+ */

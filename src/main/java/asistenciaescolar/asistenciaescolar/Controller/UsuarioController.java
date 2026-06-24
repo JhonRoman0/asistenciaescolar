@@ -67,15 +67,4 @@ public class UsuarioController {
         return ResponseEntity.noContent().build(); // Estándar HTTP 204 No Content
     }
 
-    @GetMapping("/perfil-sesion")
-    public ResponseEntity<Map<String, Object>> obtenerPerfilDesdeSesion(HttpSession session) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> perfil = (Map<String, Object>) session.getAttribute("PERFIL_USUARIO");
-
-        if (perfil == null) {
-            return ResponseEntity.status(401).build(); // Si no hay sesión, responde No Autorizado
-        }
-
-        return ResponseEntity.ok(perfil);
-    }
 }
