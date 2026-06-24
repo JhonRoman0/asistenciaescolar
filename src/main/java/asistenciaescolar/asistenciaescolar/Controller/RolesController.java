@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Controller;
 
+import asistenciaescolar.asistenciaescolar.Dto.dtoRolesResponse;
 import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Service.RolesService; // Asegúrate que el nombre coincida
 import asistenciaescolar.asistenciaescolar.Dto.dtoRoles;
@@ -24,15 +25,15 @@ public class RolesController {
 
     @GetMapping
     @Operation(summary = "Listar Roles")
-    public ResponseEntity<List<Roles>> listar() {
+    public ResponseEntity<List<dtoRolesResponse>> listar() {
         return ResponseEntity.ok(rolesService.listarTodos());
     }
 
     @PostMapping
     @Operation(summary = "Reistrar Roles")
-    public ResponseEntity<Roles> crear(@RequestBody dtoRoles rolDto) { // <-- Cambiado de String a Roles
+    public ResponseEntity<Roles> crear(@RequestBody dtoRoles rolDto) {
         Roles nuevoRol = rolesService.crearRol(rolDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoRol); // <-- Cambiado a 201 Created con el objeto
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoRol);
     }
 
     @PutMapping("/{id}")

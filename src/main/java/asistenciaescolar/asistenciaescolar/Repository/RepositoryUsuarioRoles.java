@@ -15,4 +15,5 @@ public interface RepositoryUsuarioRoles extends JpaRepository<UsuarioRoles,Integ
     void deleteByUsuario(Usuario usuario);
 
     long countByRol(Roles rol);
+    long countByRolAndUsuarioEstadoNot(Roles rol, Short estadoEliminado);
 }

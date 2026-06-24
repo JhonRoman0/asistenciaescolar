@@ -1,6 +1,7 @@
 package asistenciaescolar.asistenciaescolar.Service;
 
 import asistenciaescolar.asistenciaescolar.Dto.dtoRoles;
+import asistenciaescolar.asistenciaescolar.Dto.dtoRolesResponse;
 import asistenciaescolar.asistenciaescolar.Model.Modulo;
 import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Model.RolesModulo;
@@ -27,10 +28,34 @@ public class RolesService {
     private final RepositoryUsuarioRoles repositoryUsuarioRoles;
     private final RepositoryModulo repositoryModulo;
 
-    // Listar solo los roles que no están eliminados (estado != 2)
-    public List<Roles> listarTodos() {
+    // Listar solo los roles que no están eliminados (estado != 0)
+    // Cambiar el método listarTodos en RolesService:
+
+    public List<dtoRolesResponse> listarTodos() {
         return repositoryRoles.findAll().stream()
-                .filter(r -> r.getEstado() != 2)
+                .filter(r -> r.getEstado() != 0) // Excluir roles eliminados
+                .map(rol -> {
+                    dtoRolesResponse dto = new dtoRolesResponse();
+                    dto.setIdRoles(rol.getIdRoles());
+                    dto.setNombreRol(rol.getNombreRol());
+                    dto.setEstado(rol.getEstado());
+                    dto.setFechaCreacion(rol.getFechaCreacion());
+                    dto.setColor(rol.getColor());
+
+                    // Mapear los IDs de los módulos asignados
+                    if (rol.getRolesModulos() != null) {
+                        List<Integer> ids = rol.getRolesModulos().stream()
+                                .map(rm -> rm.getModulo().getIdModulo()) // Ajusta al nombre real del ID en tu entidad Modulo
+                                .collect(Collectors.toList());
+                        dto.setIdModulos(ids);
+                    }
+
+                    // Contar solo usuarios activos (ejemplo: excluyendo estado 2 que es eliminado)
+                    long activos = repositoryUsuarioRoles.countByRolAndUsuarioEstadoNot(rol, (short) 0);
+                    dto.setCantidadUsuariosActivos(activos);
+
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -109,7 +134,7 @@ public class RolesService {
         return rolActualizado;
     }
 
-    // Método para Eliminación Lógica (Estado 2)
+    // Método para Eliminación Lógica (Estado 0)
     @Transactional
     public void eliminarLogico(Integer id) {
         // Busca si el rol existe en la base de datos
@@ -123,7 +148,7 @@ public class RolesService {
                     "No se puede eliminar el rol '" + rol.getNombreRol() + "' porque tiene " + cantidadUsuarios + " usuario(s) asignado(s).");
         }
 
-        // Si está libre de usuarios, hacemos el borrado lógico (Estado 2)
+        // Si está libre de usuarios, hacemos el borrado lógico (Estado 0)
         rol.setEstado((short) 0);
         repositoryRoles.save(rol);
     }
