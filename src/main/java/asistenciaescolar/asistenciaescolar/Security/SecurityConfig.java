@@ -98,10 +98,22 @@ public class SecurityConfig{
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // 1. Origen específico requerido por 'credentials: true'
         configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        // 2. Métodos permitidos
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        // 3. MODIFICADO: Lista explícita de cabeceras incluyendo la de ngrok
+        configuration.setAllowedHeaders(List.of(
+                "Content-Type",
+                "Authorization",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "ngrok-skip-browser-warning"
+        ));
+        // 4. Exponer Set-Cookie para que el navegador la lea
         configuration.setExposedHeaders(List.of("Set-Cookie"));
+        // 5. Permitir el flujo de cookies de sesión
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
