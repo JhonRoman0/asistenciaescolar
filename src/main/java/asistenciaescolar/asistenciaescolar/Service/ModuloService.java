@@ -61,7 +61,7 @@ public class ModuloService {
         // Reutilizamos buscarPorId; si no existe, lanza el 404 controlado de inmediato
         Modulo modulo = buscarPorId(id);
 
-        modulo.setEstado((short) 2); // Cambia el estado a 2 (Inactivo/Eliminado)
+        modulo.setEstado((short) 0); // Cambia el estado a 2 (Inactivo/Eliminado)
         repositoryModulo.save(modulo);
     }
 }

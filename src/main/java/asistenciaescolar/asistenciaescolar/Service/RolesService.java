@@ -124,7 +124,7 @@ public class RolesService {
         }
 
         // Si está libre de usuarios, hacemos el borrado lógico (Estado 2)
-        rol.setEstado((short) 2);
+        rol.setEstado((short) 0);
         repositoryRoles.save(rol);
     }
 }

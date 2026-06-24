@@ -157,7 +157,7 @@ public class UsuarioService {
         // Reutilizamos obtenerPorId (Asegura el control del 404)
         Usuario usuario = obtenerPorId(id);
 
-        usuario.setEstado((short) 2); // 2 = Eliminado/Inactivo permanentemente
+        usuario.setEstado((short) 0); // 2 = Eliminado/Inactivo permanentemente
         repositoryUsuario.save(usuario);
     }
 }
