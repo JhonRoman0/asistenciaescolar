@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,9 +19,12 @@ public class Turno {
     @Column(nullable = false, length = 20)
     private String turno;
     @Column(nullable = false)
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime horaEntrada;
     @Column(nullable = false)
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime horaEntradaLimite;
     @Column(nullable = false)
+    @JsonFormat(pattern = "HH:mm:ss")
     private  LocalTime horaFaltaLimite;
 }
