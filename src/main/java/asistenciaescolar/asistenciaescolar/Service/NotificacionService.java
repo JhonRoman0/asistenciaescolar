@@ -1,41 +1,61 @@
-package asistenciaescolar.asistenciaescolar.Service;
+    package asistenciaescolar.asistenciaescolar.Service;
 
-import asistenciaescolar.asistenciaescolar.Model.Alumno;
-import asistenciaescolar.asistenciaescolar.Model.Asistencias;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+    import asistenciaescolar.asistenciaescolar.Model.Alumno;
+    import asistenciaescolar.asistenciaescolar.Model.Asistencias;
+    import asistenciaescolar.asistenciaescolar.Model.Apoderado;
+    import lombok.RequiredArgsConstructor;
+    import org.springframework.stereotype.Service;
 
-@Service
-public class NotificacionService {
+    import java.time.LocalDateTime;
 
-    @Async
-    public void enviarAlertaPadre(Alumno alumno, Asistencias asistencia) {
-        try {
-            String nombreCompleto = alumno.getNombre() + " " + alumno.getApellidoPaterno();
-            String estadoStr = asistencia.getEstado().getEstado(); // "Asistencia", "Tardanza" o "Asistencia Justificada"
-            String hora = asistencia.getHoraEntrada().toString();
+    @Service
+    @RequiredArgsConstructor
+    public class NotificacionService {
 
-            String mensaje = String.format(
-                    "Control Escolar: El estudiante %s registró su ingreso como [%s] a las %s.",
-                    nombreCompleto, estadoStr, hora
-            );
+        private final SmsService smsService;
 
-            System.out.println("====== [HILO SECUNDARIO] INICIANDO ENVÍO DE NOTIFICACIÓN ======");
-            System.out.println("Enviando mensaje para: " + nombreCompleto + " | Contenido: " + mensaje);
+        public void enviarAlertaPadre(Alumno alumno, Asistencias asistencia) {
+            System.out.println("====== [DEBUG SMS] Iniciando flujo masivo para el alumno: " + alumno.getNombre() + " " + alumno.getApellidoPaterno() + " ======");
 
-            // =========================================================================
-            // APARTADO PARA IMPLEMENTAR LA API DE LA EMPRESA EXTERNA
-            // =========================================================================
-            // Aquí pegarás el código HTTP/Client que te provea la empresa externa.
-            // Ejemplo:
-            // apiCliente.sendSMS(alumno.getTelefonoApoderado(), mensaje);
-            // =========================================================================
+            if (alumno.getAlumnoApoderados() == null || alumno.getAlumnoApoderados().isEmpty()) {
+                System.err.println("====== [DEBUG SMS] ERROR: La lista de apoderados vinculados al alumno está vacía o es nula ======");
+                return;
+            }
 
-            System.out.println("====== [HILO SECUNDARIO] NOTIFICACIÓN PROCESADA ======");
+            // RECORREMOS TODOS LOS APODERADOS SIN FILTRAR POR EL PRINCIPAL
+            alumno.getAlumnoApoderados().forEach(relacion -> {
+                Apoderado apoderado = relacion.getApoderado();
 
-        } catch (Exception e) {
-            // Capturamos cualquier error de la API externa para que no afecte al sistema principal
-            System.err.println("Error al enviar la notificación externa: " + e.getMessage());
+                System.out.println("====== [DEBUG SMS] Procesando apoderado: " + apoderado.getNombre() + " (Principal: " + relacion.getEsPrincipal() + ") ======");
+
+                // Verificamos que este apoderado en particular tenga un celular registrado
+                if (apoderado.getCelular() != null && !apoderado.getCelular().trim().isEmpty()) {
+
+                    // Construimos el nombre completo del alumno
+                    String nombreCompleto = String.format("%s %s %s",
+                            alumno.getNombre(),
+                            alumno.getApellidoPaterno(),
+                            alumno.getApellidoMaterno() != null ? alumno.getApellidoMaterno() : ""
+                    ).trim();
+
+                    // Combinamos la Fecha actual y la Hora de Entrada
+                    LocalDateTime fechaHoraMarcado = asistencia.getFecha().atTime(asistencia.getHoraEntrada());
+
+                    // Obtenemos el texto del estado
+                    String estadoTexto = asistencia.getEstado().getEstado();
+
+                    System.out.println("====== [DEBUG SMS] Enviando mensaje a: " + apoderado.getNombre() + " - Celular: " + apoderado.getCelular() + " ======");
+
+                    // Enviamos el SMS individual utilizando tu servicio de Twilio
+                    smsService.enviarSmsAsistencia(
+                            apoderado.getCelular(),
+                            nombreCompleto,
+                            fechaHoraMarcado,
+                            estadoTexto
+                    );
+                } else {
+                    System.err.println("====== [DEBUG SMS] ADVERTENCIA: El apoderado " + apoderado.getNombre() + " no tiene celular en la BD. Saltando... ======");
+                }
+            });
         }
     }
-}

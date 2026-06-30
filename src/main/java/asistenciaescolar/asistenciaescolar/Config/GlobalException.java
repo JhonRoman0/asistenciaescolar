@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Config;
 
+import com.cloudinary.api.exceptions.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -35,6 +36,17 @@ public class GlobalException {
         respuesta.put("message", "Ocurrió un error inesperado en el servidor: " + ex.getMessage());
 
         return new ResponseEntity<>(respuesta, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<Map<String, Object>> manejarTwilioException(ApiException ex) {
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("timestamp", LocalDateTime.now().toString());
+        respuesta.put("status", HttpStatus.BAD_GATEWAY.value()); // 502 Bad Gateway indica un error en un servicio externo
+        respuesta.put("error", "Error en el Servicio de Notificaciones (Twilio)");
+        respuesta.put("message", ex.getMessage()); // Muestra la descripción exacta de Twilio (útil para debuggear)
+
+        return new ResponseEntity<>(respuesta, HttpStatus.BAD_GATEWAY);
     }
 
     @ExceptionHandler(DniApiException.class)

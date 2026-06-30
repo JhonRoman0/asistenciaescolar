@@ -27,6 +27,9 @@ public class SecurityConfig{
                 .csrf(csrf -> csrf.disable())
                 // 2. Configurar CORS para permitir que Next.js se conecte
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+                )
                 .authorizeHttpRequests(auth -> auth
                         // 1. Archivos HTML y estáticos
                         .requestMatchers(

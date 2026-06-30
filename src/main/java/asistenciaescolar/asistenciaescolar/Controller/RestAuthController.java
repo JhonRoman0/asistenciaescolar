@@ -31,17 +31,33 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "*") // Crucial para que Next.js pueda conectarse sin bloqueos de CORS
 @RequiredArgsConstructor
 @Tag(name = "Autenticación", description = "Endpoint para el inicio de sesión del sistema")
 public class RestAuthController {
 
     private final AuthService authService;
 
+    // Reemplaza el método login actual por este en RestAuthController.java
+
     @PostMapping("/login")
     @Operation(summary = "Iniciar sesión en el sistema")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(
+            @RequestBody LoginRequest loginRequest,
+            HttpServletRequest request // <--- Inyectamos el request de Jakarta
+    ) {
+        // 1. Ejecuta la lógica actual del servicio (valida contraseña y carga datos)
         LoginResponse respuesta = authService.autenticar(loginRequest);
+        // 2. Cargamos el usuario autenticado que el AuthService acaba de meter al Contexto
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null) {
+            // 3. Forzamos la creación/obtención de la sesión HTTP en el servidor
+            var session = request.getSession(true);
+            // 4. Guardamos el contexto de seguridad dentro de la sesión para que persista entre peticiones
+            session.setAttribute(
+                    org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    SecurityContextHolder.getContext()
+            );
+        }
         return ResponseEntity.ok(respuesta);
     }
 
