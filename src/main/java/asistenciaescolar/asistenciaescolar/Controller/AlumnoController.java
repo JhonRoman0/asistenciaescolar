@@ -24,7 +24,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/alumnos")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @Tag(name = "Alumnos", description = "Crud de Alumnos y algunso filtros")
 public class AlumnoController {

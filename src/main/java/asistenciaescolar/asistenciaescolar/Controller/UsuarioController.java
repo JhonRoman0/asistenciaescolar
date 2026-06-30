@@ -2,7 +2,6 @@ package asistenciaescolar.asistenciaescolar.Controller;
 
 import asistenciaescolar.asistenciaescolar.Model.Roles;
 import asistenciaescolar.asistenciaescolar.Service.UsuarioService;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -10,13 +9,11 @@ import org.springframework.http.ResponseEntity;
 import asistenciaescolar.asistenciaescolar.Model.Usuario;
 import org.springframework.security.core.Authentication;
 import java.util.List;
-import java.util.Map;
 
 import asistenciaescolar.asistenciaescolar.Dto.dtoUsuario;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class UsuarioController {
 

@@ -30,6 +30,9 @@ public class SecurityConfig{
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
                 )
+                .securityContext(context -> context
+                        .securityContextRepository(new org.springframework.security.web.context.HttpSessionSecurityContextRepository())
+                )
                 .authorizeHttpRequests(auth -> auth
                         // 1. Archivos HTML y estáticos
                         .requestMatchers(
