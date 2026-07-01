@@ -31,6 +31,8 @@ public interface RepositoryAlumno extends JpaRepository<Alumno,Integer> {
 
         Optional<Alumno> findByCodigoHash(String codigoHash);
         Optional<Alumno> findByCodigoUnico(String codigoUnico);
+    // Este es clave para el endpoint "hoy": listar alumnos activos (estado = 1)
+    List<Alumno> findByEstado(Integer estado);
 
 }
 

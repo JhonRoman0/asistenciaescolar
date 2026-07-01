@@ -7,5 +7,6 @@ public class dtoAsistenciaRequest {
     private String codigoHash;
     private String codigoUnico;
     private Integer idJustificacion;
+    private Integer idUsuarioRegistro;
 }
 

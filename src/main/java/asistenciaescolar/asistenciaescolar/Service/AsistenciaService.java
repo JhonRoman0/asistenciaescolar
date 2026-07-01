@@ -10,8 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AsistenciaService {
@@ -26,6 +29,8 @@ public class AsistenciaService {
     private NotificacionService notificacionService;
     @Autowired
     private RepositoryJustificacion justificacionRepository;
+    @Autowired
+    private RepositoryUsuario usuarioRepository;
 
     /**
      * PASO 1: Buscar al alumno y pre-calcular su estado para que el Front lo valide en pantalla.
@@ -88,12 +93,19 @@ public class AsistenciaService {
         Estado estado = estadoRepository.findById(idEstadoCalculado)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Error en la configuración de estados."));
 
+        if (request.getIdUsuarioRegistro() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Es obligatorio enviar el ID del usuario que registra la asistencia.");
+        }
+        Usuario usuario = usuarioRepository.findById(request.getIdUsuarioRegistro())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario registrador no existe o no está logueado."));
+
         // Guardamos físicamente en la BD
         Asistencias asistencia = new Asistencias();
         asistencia.setAlumno(alumno);
         asistencia.setFecha(LocalDate.now());
         asistencia.setHoraEntrada(horaActual);
         asistencia.setEstado(estado);
+        asistencia.setUsuarioRegistro(usuario);
 
         // =========================================================================
         // CAMBIO AQUÍ: Controlar dinámicamente la justificación
@@ -123,6 +135,180 @@ public class AsistenciaService {
                 estado.getEstado(),
                 horaActual.toString()
         );
+    }
+    // =========================================================================
+    // IMPLEMENTACIÓN DE LOS 5 ENDPOINTS PEDIDOS POR EL FRONT
+    // =========================================================================
+
+    /**
+     * 1. GET /api/asistencias/hoy
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerAsistenciasHoy() {
+        LocalDate hoy = LocalDate.now();
+        List<Alumno> alumnosActivos = alumnoRepository.findByEstado(1);
+
+        return alumnosActivos.stream().map(alumno -> {
+            Map<String, Object> fila = new LinkedHashMap<>();
+            fila.put("idAlumno", alumno.getIdAlumno());
+            fila.put("nombreCompleto", alumno.getNombre() + " " + alumno.getApellidoPaterno());
+
+            Optional<Asistencias> asistenciaHoy = asistenciaRepository.findByAlumnoAndFecha(alumno, hoy);
+
+            if (asistenciaHoy.isPresent()) {
+                fila.put("idAsistencia", asistenciaHoy.get().getIdAsistencias());
+                fila.put("estado", asistenciaHoy.get().getEstado().getEstado());
+                fila.put("horaEntrada", asistenciaHoy.get().getHoraEntrada());
+                fila.put("marcadoPor", asistenciaHoy.get().getUsuarioRegistro().getNombre());
+            } else {
+                fila.put("idAsistencia", null);
+                fila.put("estado", "Inasistencia");
+                fila.put("horaEntrada", null);
+                fila.put("marcadoPor", null);
+            }
+            return fila;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 2. GET /api/asistencias/semana?fecha=YYYY-MM-DD
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerMatrizSemanal(LocalDate fecha) {
+        LocalDate lunes = fecha.with(DayOfWeek.MONDAY);
+        List<Alumno> alumnos = alumnoRepository.findByEstado(1);
+
+        return alumnos.stream().map(alumno -> {
+            Map<String, Object> fila = new LinkedHashMap<>();
+            fila.put("idAlumno", alumno.getIdAlumno());
+            fila.put("alumno", alumno.getNombre() + " " + alumno.getApellidoPaterno());
+
+            List<String> estadosSemana = new ArrayList<>();
+            for (int i = 0; i < 5; i++) { // Lunes a Viernes
+                LocalDate diaEvaluar = lunes.plusDays(i);
+                Optional<Asistencias> ast = asistenciaRepository.findByAlumnoAndFecha(alumno, diaEvaluar);
+                // Corregido: Obtenemos el nombre del estado desde el objeto Estado correlacionado
+                estadosSemana.add(ast.isPresent() ? ast.get().getEstado().getEstado() : "Inasistencia");
+            }
+            fila.put("estados", estadosSemana);
+            return fila;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 3. GET /api/asistencias/mes?fecha=YYYY-MM-DD
+     * Envía un resumen por alumno detallando días asistidos, inasistencias y su porcentaje de asistencia.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerResumenMensual(LocalDate fecha) {
+        LocalDate inicioMes = fecha.withDayOfMonth(1);
+        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());
+
+        List<Alumno> alumnos = alumnoRepository.findByEstado(1);
+        // Traemos todas las asistencias del mes de golpe para procesar rápido en memoria
+        List<Asistencias> asistenciasMes = asistenciaRepository.findByFechaBetween(inicioMes, finMes);
+
+        // Mapeamos asistencia por ID de Alumno para búsquedas eficientes O(1)
+        Map<Integer, List<Asistencias>> asistenciasPorAlumno = asistenciasMes.stream()
+                .collect(Collectors.groupingBy(a -> a.getAlumno().getIdAlumno()));
+
+        // Contamos días hábiles reales de Lunes a Viernes en este mes específico
+        long diasHabilesDelMes = inicioMes.datesUntil(finMes.plusDays(1))
+                .filter(d -> d.getDayOfWeek() != DayOfWeek.SATURDAY && d.getDayOfWeek() != DayOfWeek.SUNDAY)
+                .count();
+
+        if (diasHabilesDelMes == 0) diasHabilesDelMes = 1; // Prevenir división por cero
+
+        final long totalDias = diasHabilesDelMes;
+
+        return alumnos.stream().map(alumno -> {
+            List<Asistencias> susAsistencias = asistenciasPorAlumno.getOrDefault(alumno.getIdAlumno(), new ArrayList<>());
+
+            // Consideramos "Asistió" a Puntual(1), Tardanza(3) y Justificada(4)
+            long asistenciasRegistradas = susAsistencias.stream()
+                    .filter(a -> Arrays.asList(1, 3, 4).contains(a.getEstado().getIdEstado()))
+                    .count();
+
+            long inasistencias = totalDias - asistenciasRegistradas;
+            double porcentaje = ((double) asistenciasRegistradas / totalDias) * 100;
+
+            Map<String, Object> fila = new LinkedHashMap<>();
+            fila.put("idAlumno", alumno.getIdAlumno());
+            fila.put("alumno", alumno.getNombre() + " " + alumno.getApellidoPaterno());
+            fila.put("diasAsistidos", asistenciasRegistradas);
+            fila.put("inasistencias", inasistencias < 0 ? 0 : inasistencias);
+            fila.put("porcentajeAsistencia", Math.round(porcentaje * 100.0) / 100.0); // Redondeo a 2 decimales
+
+            return fila;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 4. GET /api/asistencias/estadisticas?rango=...&fecha=...
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Long> obtenerEstadisticas(String rango, LocalDate fecha) {
+        LocalDate inicio = fecha;
+        LocalDate fin = fecha;
+
+        if ("semana".equalsIgnoreCase(rango)) {
+            inicio = fecha.with(DayOfWeek.MONDAY);
+            fin = fecha.with(DayOfWeek.FRIDAY);
+        } else if ("mes".equalsIgnoreCase(rango)) {
+            inicio = fecha.withDayOfMonth(1);
+            fin = fecha.withDayOfMonth(fecha.lengthOfMonth());
+        }
+
+        List<Asistencias> registros = asistenciaRepository.findByFechaBetween(inicio, fin);
+        long totalAlumnosActivos = alumnoRepository.findByEstado(1).size();
+
+        // Días laborables en el rango
+        long diasRango = inicio.datesUntil(fin.plusDays(1))
+                .filter(d -> d.getDayOfWeek() != DayOfWeek.SATURDAY && d.getDayOfWeek() != DayOfWeek.SUNDAY)
+                .count();
+        if (diasRango == 0) diasRango = 1;
+
+        long universoTotalEsperado = totalAlumnosActivos * diasRango;
+
+        long puntuales = registros.stream().filter(a -> a.getEstado().getIdEstado() == 1).count();
+        long tardanzas = registros.stream().filter(a -> a.getEstado().getIdEstado() == 3).count();
+        long justificados = registros.stream().filter(a -> a.getEstado().getIdEstado() == 4).count();
+
+        // Inasistencias reales calculadas matemáticamente
+        long totalPresentes = registros.size();
+        long inasistencias = universoTotalEsperado - totalPresentes;
+
+        Map<String, Long> kpis = new LinkedHashMap<>();
+        kpis.put("Presentes", puntuales);
+        kpis.put("Tardanzas", tardanzas);
+        kpis.put("Justificados", justificados);
+        kpis.put("Inasistencias", inasistencias < 0 ? 0L : inasistencias);
+
+        return kpis;
+    }
+
+    /**
+     * 5. PUT /api/asistencias/{id}/justificar
+     */
+    @Transactional
+    public void justificarAsistenciaRetroactiva(Integer idAsistencia, Integer idJustificacion, Integer idUsuarioAdmin) {
+        Asistencias asistencia = asistenciaRepository.findById(idAsistencia)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro de asistencia no encontrado."));
+
+        Justificacion jst = justificacionRepository.findById(idJustificacion)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Motivo de justificación inválido."));
+
+        Usuario admin = usuarioRepository.findById(idUsuarioAdmin)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario administrador no existe."));
+
+        Estado estadoJustificado = estadoRepository.findById(4)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Configuración de estados rota."));
+
+        asistencia.setEstado(estadoJustificado);
+        asistencia.setJustificacion(jst);
+        asistencia.setUsuarioRegistro(admin);
+
+        asistenciaRepository.save(asistencia);
     }
 
     // ==========================================

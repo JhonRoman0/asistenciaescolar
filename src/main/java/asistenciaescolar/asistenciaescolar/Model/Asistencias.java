@@ -32,4 +32,8 @@ public class Asistencias {
     @ManyToOne
     @JoinColumn(name = "idJustificacion",nullable = true)
     private Justificacion justificacion;
+
+    @ManyToOne
+    @JoinColumn(name = "idUsuarioRegistro", nullable = false)
+    private Usuario usuarioRegistro;
 }

@@ -7,11 +7,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -39,6 +42,51 @@ public class AsistenciaController {
         // Retorna HttpStatus.CREATED (201) porque estamos insertando un nuevo registro de asistencia
         dtoAsistenciaResponse resultado = asistenciaService.registrarAsistenciaConfirmada(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
+    }
+
+    // =========================================================================
+    // ENDPOINTS DE CONSULTA Y GESTIÓN (REPORTEADOS)
+    // =========================================================================
+
+    @GetMapping("/hoy")
+    @Operation(summary = "Lista general de alumnos activos y su estado de asistencia de hoy")
+    public ResponseEntity<List<Map<String, Object>>> obtenerAsistenciasHoy() {
+        return ResponseEntity.ok(asistenciaService.obtenerAsistenciasHoy());
+    }
+
+    @GetMapping("/semana")
+    @Operation(summary = "Obtener matriz de asistencia semanal (Lunes a Viernes) basada en una fecha")
+    public ResponseEntity<List<Map<String, Object>>> obtenerMatrizSemanal(
+            @RequestParam("fecha") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return ResponseEntity.ok(asistenciaService.obtenerMatrizSemanal(fecha));
+    }
+
+    @GetMapping("/mes")
+    @Operation(summary = "Obtener resumen mensual consolidado con ratios y porcentajes")
+    public ResponseEntity<List<Map<String, Object>>> obtenerResumenMensual(
+            @RequestParam("fecha") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return ResponseEntity.ok(asistenciaService.obtenerResumenMensual(fecha));
+    }
+
+    @GetMapping("/estadisticas")
+    @Operation(summary = "Obtener KPIs globales agrupados para gráficos del Dashboard")
+    public ResponseEntity<Map<String, Long>> obtenerEstadisticas(
+            @RequestParam(value = "rango", defaultValue = "hoy") String rango,
+            @RequestParam("fecha") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return ResponseEntity.ok(asistenciaService.obtenerEstadisticas(rango, fecha));
+    }
+
+    @PutMapping("/{id}/justificar")
+    @Operation(summary = "Cambiar retroactivamente una inasistencia/tardanza a un estado Justificado")
+    public ResponseEntity<Map<String, String>> justificarAsistenciaRetroactiva(
+            @PathVariable("id") Integer idAsistencia,
+            @RequestParam("idJustificacion") Integer idJustificacion,
+            @RequestParam("idUsuarioAdmin") Integer idUsuarioAdmin) {
+
+        asistenciaService.justificarAsistenciaRetroactiva(idAsistencia, idJustificacion, idUsuarioAdmin);
+
+        // Retornamos un JSON descriptivo estructurado en lugar de un String plano
+        return ResponseEntity.ok(Map.of("message", "Asistencia justificada de manera exitosa de forma retroactiva."));
     }
 
 }

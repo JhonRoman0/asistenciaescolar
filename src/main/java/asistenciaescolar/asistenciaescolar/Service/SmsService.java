@@ -1,6 +1,7 @@
 package asistenciaescolar.asistenciaescolar.Service;
 
 import asistenciaescolar.asistenciaescolar.Config.TwilioConfig;
+import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
 import lombok.RequiredArgsConstructor;
@@ -15,37 +16,37 @@ public class SmsService {
 
     private final TwilioConfig twilioConfig;
 
+    public void enviarSmsAsistencia(String celularApoderado, String nombreAlumno, LocalDateTime fechaHora, String estado) {
+        // Aseguramos el formato con +51
+        String numeroLimpio = celularApoderado.trim();
+        String numeroDestino = numeroLimpio.startsWith("+51") ? numeroLimpio : "+51" + numeroLimpio;
 
-    public void enviarSmsAsistencia(String celularApoderado, String nombreCompletoAlumno, LocalDateTime fechaHoraMarcado, String estadoAsistencia) {
+        // Formateamos la fecha para que se vea más humana en el mensaje (Ej: 27/06/2026 19:30)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        String fechaFormateada = fechaHora.format(formatter);
+
+        // Tu texto de asistencia estructurado
+        String textoAsistencia = String.format(
+                "Control Escolar: El alumno %s registró su asistencia como [%s] el %s.",
+                nombreAlumno,
+                estado,
+                fechaFormateada
+        );
 
         try {
-            String numeroDestino = celularApoderado.startsWith("+51") ? celularApoderado : "+51" + celularApoderado.trim();
+            // Inicializamos Twilio explícitamente con tus credenciales configuradas
+            Twilio.init(twilioConfig.getAccountSid(), twilioConfig.getAuthToken());
 
-            // Formateadores dentro del servicio para limpiar la cadena del SMS
-            DateTimeFormatter formateadorHora = DateTimeFormatter.ofPattern("HH:mm:ss");
-            DateTimeFormatter formateadorFecha = DateTimeFormatter.ofPattern("dd/MM");
-
-            String hora = fechaHoraMarcado.format(formateadorHora);
-            String fecha = fechaHoraMarcado.format(formateadorFecha);
-
-            String textoMensaje = String.format(
-                    "Control Escolar: El alumno %s ha ingresado a las %s la fecha %s y su estado es %s.",
-                    nombreCompletoAlumno,
-                    hora,
-                    fecha,
-                    estadoAsistencia.toUpperCase()
-            );
-
-            Message.creator(
-                    new PhoneNumber(numeroDestino),
-                    new PhoneNumber(twilioConfig.getTwilioPhoneNumber()),
-                    textoMensaje
+            // Enviamos el WhatsApp usando el Sandbox universal
+            Message message = Message.creator(
+                    new PhoneNumber("whatsapp:" + numeroDestino),       // Destinatario real
+                    new PhoneNumber("whatsapp:+14155238886"),          // Número del Sandbox de Twilio
+                    textoAsistencia
             ).create();
 
-            System.out.println("SMS enviado correctamente a: " + numeroDestino);
-
+            System.out.println("====== [TWILIO SUCCESS] WhatsApp enviado con SID: " + message.getSid() + " ======");
         } catch (Exception e) {
-            System.err.println("Error al enviar el SMS a través de Twilio: " + e.getMessage());
+            System.err.println("Error al enviar el WhatsApp a través de Twilio: " + e.getMessage());
         }
     }
 }
