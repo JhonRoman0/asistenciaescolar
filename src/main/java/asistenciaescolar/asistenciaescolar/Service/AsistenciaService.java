@@ -65,7 +65,12 @@ public class AsistenciaService {
         return new dtoAsistenciaResponse(
                 alumno.getNombre(),
                 alumno.getApellidoPaterno(),
+                alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
+                alumno.getCodigoUnico(),                         // <-- Agregado
+                alumno.getGrado().getGrado(),                    // <-- Ajusta según tu entidad Grado
+                alumno.getSeccion().getSeccion(),                // <-- Ajusta según tu entidad Seccion
+                turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),
                 horaActual.toString()
         );
@@ -131,7 +136,12 @@ public class AsistenciaService {
         return new dtoAsistenciaResponse(
                 alumno.getNombre(),
                 alumno.getApellidoPaterno(),
+                alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
+                alumno.getCodigoUnico(),                         // <-- Agregado
+                alumno.getGrado().getGrado(),                    // <-- Ajusta según tu entidad Grado
+                alumno.getSeccion().getSeccion(),                // <-- Ajusta según tu entidad Seccion
+                turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),
                 horaActual.toString()
         );
