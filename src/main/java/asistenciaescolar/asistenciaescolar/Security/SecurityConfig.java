@@ -88,6 +88,7 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.POST, "/api/asistencias/previsualizar").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/asistencias/confirmar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/asistencias/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/asistencias/**").permitAll()
 
                         .anyRequest().authenticated()
                 );

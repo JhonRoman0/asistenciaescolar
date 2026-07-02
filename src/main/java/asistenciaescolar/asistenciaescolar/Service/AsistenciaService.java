@@ -349,4 +349,8 @@ public class AsistenciaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registro denegado: El límite de ingreso ha expirado. Es Inasistencia.");
         }
     }
+    @Transactional(readOnly = true)
+    public List<Justificacion> listarJustificaciones() {
+        return justificacionRepository.findAll();
+    }
 }

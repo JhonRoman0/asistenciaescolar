@@ -2,6 +2,7 @@ package asistenciaescolar.asistenciaescolar.Controller;
 
 import asistenciaescolar.asistenciaescolar.Dto.dtoAsistenciaRequest;
 import asistenciaescolar.asistenciaescolar.Dto.dtoAsistenciaResponse;
+import asistenciaescolar.asistenciaescolar.Model.Justificacion;
 import asistenciaescolar.asistenciaescolar.Service.AsistenciaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -87,6 +88,11 @@ public class AsistenciaController {
 
         // Retornamos un JSON descriptivo estructurado en lugar de un String plano
         return ResponseEntity.ok(Map.of("message", "Asistencia justificada de manera exitosa de forma retroactiva."));
+    }
+    @GetMapping("/justificaciones")
+    public ResponseEntity<List<Justificacion>> listarJustificaciones() {
+        List<Justificacion> lista = asistenciaService.listarJustificaciones();
+        return ResponseEntity.ok(lista);
     }
 
 }
