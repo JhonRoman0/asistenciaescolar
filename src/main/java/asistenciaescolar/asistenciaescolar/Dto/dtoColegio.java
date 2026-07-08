@@ -13,4 +13,5 @@ public class dtoColegio {
     private String celular;
     private String gmail;
     private List<dtoTurno> turnos;
+    private List<dtoGradoSeccionInput> configuracionGrados;
 }

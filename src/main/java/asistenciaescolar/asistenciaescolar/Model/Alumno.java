@@ -44,12 +44,8 @@ public class Alumno {
 
 
     @ManyToOne
-    @JoinColumn(name = "idSeccion", nullable = false)
-    private Seccion seccion;
-
-    @ManyToOne
-    @JoinColumn(name = "idGrado", nullable = false)
-    private Grado grado;
+    @JoinColumn(name = "idGradoSeccion", nullable = false)
+    private GradoSeccion gradoSeccion;
 
     @OneToMany(mappedBy = "alumno", fetch = FetchType.EAGER)
     @JsonIgnoreProperties("alumno")

@@ -2,16 +2,13 @@ package asistenciaescolar.asistenciaescolar.Controller;
 
 
 import asistenciaescolar.asistenciaescolar.Dto.DniData;
-import asistenciaescolar.asistenciaescolar.Dto.DniResponse;
 import asistenciaescolar.asistenciaescolar.Dto.dtoAlumno;
 import asistenciaescolar.asistenciaescolar.Model.Alumno;
-import asistenciaescolar.asistenciaescolar.Model.Grado;
-import asistenciaescolar.asistenciaescolar.Model.Seccion;
+import asistenciaescolar.asistenciaescolar.Model.GradoSeccion;
 import asistenciaescolar.asistenciaescolar.Service.AlumnoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -40,10 +37,9 @@ public class AlumnoController {
     @Operation(summary = "Listar alumnos con filtros")
     public ResponseEntity<List<dtoAlumno>> listarAlumnos(
             @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) Integer idGrado,
-            @RequestParam(required = false) Integer idSeccion,
+            @RequestParam(required = false) Integer idGradoSeccion,
             @RequestParam(required = false) Integer estado) {
-        return ResponseEntity.ok(alumnoService.listarAlumnosConApoderados(nombre, idGrado, idSeccion, estado));
+        return ResponseEntity.ok(alumnoService.listarAlumnosConApoderados(nombre, idGradoSeccion, estado));
     }
 
 
@@ -64,16 +60,10 @@ public class AlumnoController {
         return ResponseEntity.ok(alumnoService.actualizarAlumno(id, dto, foto));
     }
 
-    @GetMapping("/grados")
-    @Operation(summary = "Listra Grados")
-    public ResponseEntity<List<Grado>> obtenerGrados() {
-        return ResponseEntity.ok(alumnoService.listarGrados());
-    }
-
-    @GetMapping("/secciones")
-    @Operation(summary = "Listar Secciones")
-    public ResponseEntity<List<Seccion>> obtenerSecciones() {
-        return ResponseEntity.ok(alumnoService.listarSecciones());
+    @GetMapping("/grados-secciones")
+    @Operation(summary = "Listar combinaciones de Grados y Secciones asignadas")
+    public ResponseEntity<List<GradoSeccion>> obtenerGradosSecciones() {
+        return ResponseEntity.ok(alumnoService.listarGradosSecciones());
     }
 
     @DeleteMapping("/{id}")

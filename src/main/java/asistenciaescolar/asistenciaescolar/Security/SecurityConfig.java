@@ -92,6 +92,9 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.PUT, "/api/asistencias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/asistencias/**").permitAll()
 
+                        // 10. NUEVO: Endpoints de Reportes
+                        .requestMatchers(HttpMethod.GET, "/api/reportes/**").permitAll()
+
                         .anyRequest().authenticated()
                 );
 

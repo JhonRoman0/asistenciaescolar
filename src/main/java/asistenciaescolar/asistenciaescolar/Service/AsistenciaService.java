@@ -1,7 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Service;
 
-import asistenciaescolar.asistenciaescolar.Dto.dtoAsistenciaRequest;
-import asistenciaescolar.asistenciaescolar.Dto.dtoAsistenciaResponse;
+import asistenciaescolar.asistenciaescolar.Dto.*;
 import asistenciaescolar.asistenciaescolar.Model.*;
 import asistenciaescolar.asistenciaescolar.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +60,9 @@ public class AsistenciaService {
         Estado estado = estadoRepository.findById(idEstadoCalculado)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Error en la configuración de estados."));
 
+        String nombreGrado = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getGrado().getGrado() : "Sin Grado";
+        String nombreSeccion = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getSeccion().getSeccion() : "Sin Sección";
+
         // Devolvemos los datos para que el Front pinte la foto y nombre del alumno
         return new dtoAsistenciaResponse(
                 alumno.getNombre(),
@@ -68,8 +70,8 @@ public class AsistenciaService {
                 alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
                 alumno.getCodigoUnico(),                         // <-- Agregado
-                alumno.getGrado().getGrado(),                    // <-- Ajusta según tu entidad Grado
-                alumno.getSeccion().getSeccion(),                // <-- Ajusta según tu entidad Seccion
+                nombreGrado,  // <-- Modificado
+                nombreSeccion,                // <-- Ajusta según tu entidad Seccion
                 turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),
                 horaActual.toString()
@@ -133,14 +135,17 @@ public class AsistenciaService {
         // Disparamos la alerta asíncrona al padre
         notificacionService.enviarAlertaPadre(alumno, asistencia);
 
+        String nombreGrado = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getGrado().getGrado() : "Sin Grado";
+        String nombreSeccion = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getSeccion().getSeccion() : "Sin Sección";
+
         return new dtoAsistenciaResponse(
                 alumno.getNombre(),
                 alumno.getApellidoPaterno(),
                 alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
                 alumno.getCodigoUnico(),                         // <-- Agregado
-                alumno.getGrado().getGrado(),                    // <-- Ajusta según tu entidad Grado
-                alumno.getSeccion().getSeccion(),                // <-- Ajusta según tu entidad Seccion
+                nombreGrado,  // <-- Modificado
+                nombreSeccion,                // <-- Ajusta según tu entidad Seccion
                 turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),
                 horaActual.toString()
@@ -362,5 +367,87 @@ public class AsistenciaService {
     @Transactional(readOnly = true)
     public List<Justificacion> listarJustificaciones() {
         return justificacionRepository.findAll();
+    }
+
+    /**
+     * 1. REPORTE GENERAL (Diario, Semanal, Mensual o por Fechas)
+     */
+    @Transactional(readOnly = true)
+    public List<dtoReporteGeneral> generarReporteGeneral(LocalDate inicio, LocalDate fin) {
+        List<Asistencias> asistencias = asistenciaRepository.findByFechaBetweenOrderByFechaAscHoraEntradaAsc(inicio, fin);
+
+        return asistencias.stream().map(a -> {
+            String gradoSeccion = (a.getAlumno().getGradoSeccion() != null)
+                    ? a.getAlumno().getGradoSeccion().getGrado().getGrado() + " - " + a.getAlumno().getGradoSeccion().getSeccion().getSeccion()
+                    : "Sin Asignar";
+
+            String justificacion = (a.getJustificacion() != null) ? a.getJustificacion().getDescripcion() : "-";
+            String nombreAlumno = a.getAlumno().getNombre() + " " + a.getAlumno().getApellidoPaterno() + " " + a.getAlumno().getApellidoMaterno();
+
+            return new dtoReporteGeneral(
+                    a.getFecha(),
+                    a.getHoraEntrada(),
+                    a.getAlumno().getCodigoUnico(),
+                    nombreAlumno,
+                    gradoSeccion,
+                    a.getEstado().getEstado(),
+                    justificacion,
+                    a.getUsuarioRegistro().getNombre()
+            );
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 2. REPORTE POR ALUMNO (Historial detallado con justificaciones)
+     */
+    @Transactional(readOnly = true)
+    public List<dtoReporteAlumno> generarReportePorAlumno(Integer idAlumno, LocalDate inicio, LocalDate fin) {
+        // Validar si el alumno existe primero
+        if (!alumnoRepository.existsById(idAlumno)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado.");
+        }
+
+        List<Asistencias> asistencias = asistenciaRepository.findByAlumno_IdAlumnoAndFechaBetweenOrderByFechaAsc(idAlumno, inicio, fin);
+
+        return asistencias.stream().map(a -> {
+            String justificacion = (a.getJustificacion() != null) ? a.getJustificacion().getDescripcion(): "-";
+            return new dtoReporteAlumno(
+                    a.getFecha(),
+                    a.getHoraEntrada(),
+                    a.getEstado().getEstado(),
+                    justificacion,
+                    a.getUsuarioRegistro().getNombre()
+            );
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 3. REPORTE POR USUARIO REGISTRADOR (Auditoría de ingresos y justificaciones aceptadas)
+     */
+    @Transactional(readOnly = true)
+    public List<dtoReporteUsuario> generarReportePorUsuario(Integer idUsuario, LocalDate inicio, LocalDate fin) {
+        if (!usuarioRepository.existsById(idUsuario)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario registrador no encontrado.");
+        }
+
+        List<Asistencias> asistencias = asistenciaRepository.findByUsuarioRegistro_IdUsuarioAndFechaBetweenOrderByFechaAsc(idUsuario, inicio, fin);
+
+        return asistencias.stream().map(a -> {
+            String gradoSeccion = (a.getAlumno().getGradoSeccion() != null)
+                    ? a.getAlumno().getGradoSeccion().getGrado().getGrado() + " - " + a.getAlumno().getGradoSeccion().getSeccion().getSeccion()
+                    : "Sin Asignar";
+
+            String justificacion = (a.getJustificacion() != null) ? a.getJustificacion().getDescripcion() : "-";
+            String nombreAlumno = a.getAlumno().getNombre() + " " + a.getAlumno().getApellidoPaterno() + " " + a.getAlumno().getApellidoMaterno();
+
+            return new dtoReporteUsuario(
+                    a.getFecha(),
+                    a.getHoraEntrada(),
+                    nombreAlumno,
+                    gradoSeccion,
+                    a.getEstado().getEstado(),
+                    justificacion
+            );
+        }).collect(Collectors.toList());
     }
 }

@@ -13,6 +13,6 @@ public class Grado {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idGrado;
-    @Column(nullable = false,length = 3)
+    @Column(name = "grado", length = 50, nullable = false)
     private  String grado;
 }

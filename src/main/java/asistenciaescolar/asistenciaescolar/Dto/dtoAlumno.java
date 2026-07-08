@@ -1,6 +1,7 @@
 package asistenciaescolar.asistenciaescolar.Dto;
 
 import asistenciaescolar.asistenciaescolar.Model.Grado;
+import asistenciaescolar.asistenciaescolar.Model.GradoSeccion;
 import asistenciaescolar.asistenciaescolar.Model.Seccion;
 import asistenciaescolar.asistenciaescolar.Model.Turno;
 import lombok.Data;
@@ -17,10 +18,8 @@ public class dtoAlumno {
     private String codigoUnico;
     private String rutaFoto;
     private Integer estado;
-    private Integer idSeccion;
-    private Seccion seccion;
-    private Integer idGrado;
-    private Grado grado;
+    private Integer idGradoSeccion;
+    private GradoSeccion gradoSeccion;
     private String dni;
     private LocalDate fechaNaci;
     private Integer idTurno;

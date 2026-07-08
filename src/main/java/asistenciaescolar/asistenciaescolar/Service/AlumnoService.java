@@ -32,10 +32,8 @@ public class AlumnoService {
     private RepositoryAlumno alumnoRepository;
 
     @Autowired
-    private RepositoryGrado gradoRepository;
+    private RepositoryGradoSeccion gradoSeccionRepository;
 
-    @Autowired
-    private RepositorySeccion seccionRepository;
 
     @Autowired
     private RepositoryTurno turnoRepository;
@@ -61,15 +59,13 @@ public class AlumnoService {
         if (foto != null && !foto.isEmpty()) {
             try {
                 // Buscamos los nombres de grado y sección para la subcarpeta automática
-                Grado grado = gradoRepository.findById(dto.getIdGrado())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
-                Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sección no encontrada"));
+                GradoSeccion gs = gradoSeccionRepository.findById(dto.getIdGradoSeccion())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La combinación de Grado y Sección no existe."));
 
                 // Limpiamos el texto (minúsculas, sin espacios) siguiendo buenas prácticas
                 String folderEstructurado = "alumnos/" +
-                        grado.getGrado().toLowerCase().trim().replace(" ", "-") + "/" +
-                        seccion.getSeccion().toLowerCase().trim().replace(" ", "-");
+                        gs.getGrado().getGrado().toLowerCase().trim().replace(" ", "-") + "/" +
+                        gs.getSeccion().getSeccion().toLowerCase().trim().replace(" ", "-");
 
                 // Subimos a Cloudinary usando el servicio estructurado
                 Map<String, Object> result = storageService.uploadFile(foto, folderEstructurado);
@@ -114,14 +110,12 @@ public class AlumnoService {
                     storageService.deleteFile(alumnoExistente.getFotoPublicId());
                 }
 
-                Grado grado = gradoRepository.findById(dto.getIdGrado())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
-                Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seccion no encontrado"));
+                GradoSeccion gs = gradoSeccionRepository.findById(dto.getIdGradoSeccion())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La combinación de Grado y Sección no existe."));
 
                 String folderEstructurado = "alumnos/" +
-                        grado.getGrado().toLowerCase().trim().replace(" ", "-") + "/" +
-                        seccion.getSeccion().toLowerCase().trim().replace(" ", "-");
+                        gs.getGrado().getGrado().toLowerCase().trim().replace(" ", "-") + "/" +
+                        gs.getSeccion().getSeccion().toLowerCase().trim().replace(" ", "-");
 
                 // 3. Subimos el nuevo archivo
                 Map<String, Object> result = storageService.uploadFile(nuevaFoto, folderEstructurado);
@@ -146,9 +140,11 @@ public class AlumnoService {
     }
 
     // Este es el que ahora llama tu controlador en la línea 25
-    public List<dtoAlumno> listarAlumnosConApoderados(String nombre, Integer idGrado, Integer idSeccion, Integer estado) {
+    public List<dtoAlumno> listarAlumnosConApoderados(String nombre, Integer idGradoSeccion, Integer estado) {
         String nombreBusqueda = (nombre != null && !nombre.trim().isEmpty()) ? nombre : null;
-        List<Alumno> alumnos = alumnoRepository.buscarConFiltros(nombreBusqueda, idGrado, idSeccion, estado);
+
+        // Ahora le pasamos el id de la relación intermedia a la consulta
+        List<Alumno> alumnos = alumnoRepository.buscarConFiltros(nombreBusqueda, idGradoSeccion, estado);
         return alumnos.stream().map(this::convertirADto).toList();
     }
 
@@ -192,24 +188,17 @@ public class AlumnoService {
         // Buscamos las entidades relacionadas
         Turno turno = turnoRepository.findById(dto.getIdTurno())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turno no encontrado"));
-        Grado grado = gradoRepository.findById(dto.getIdGrado())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
-        Seccion seccion = seccionRepository.findById(dto.getIdSeccion())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seccion no encontrado"));
+        GradoSeccion gs = gradoSeccionRepository.findById(dto.getIdGradoSeccion())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asignación de Grado y Sección no encontrada."));
 
         alumno.setTurno(turno);
-        alumno.setGrado(grado);
-        alumno.setSeccion(seccion);
+        alumno.setGradoSeccion(gs);
 
         return alumnoRepository.save(alumno);
     }
 
-    public List<Grado> listarGrados() {
-        return gradoRepository.findAll(); // Trae todos los grados de la BD
-    }
-
-    public List<Seccion> listarSecciones() {
-        return seccionRepository.findAll(); // Trae todas las secciones de la BD
+    public List<GradoSeccion> listarGradosSecciones() {
+        return gradoSeccionRepository.findAll();
     }
 
     public void eliminarLogico(Integer id) {
@@ -346,13 +335,13 @@ public class AlumnoService {
             dto.setIdTurno(alumno.getTurno().getIdTurno());
         }
 
-        if (alumno.getGrado() != null) {
-            dto.setGrado(alumno.getGrado());
-            dto.setIdGrado(alumno.getGrado().getIdGrado());
-        }
-        if (alumno.getSeccion() != null) {
-            dto.setSeccion(alumno.getSeccion());
-            dto.setIdSeccion(alumno.getSeccion().getIdSeccion());
+        if (alumno.getGradoSeccion() != null) {
+            dto.setGradoSeccion(alumno.getGradoSeccion());
+            dto.setIdGradoSeccion(alumno.getGradoSeccion().getIdGradoSeccion());
+
+            //Si el Frontend sigue esperando los objetos Grado y Seccion sueltos en el JSON, se los inyectamos desde aquí:
+            // dto.setGrado(alumno.getGradoSeccion().getGrado());
+            // dto.setSeccion(alumno.getGradoSeccion().getSeccion());
         }
 
         if (alumno.getAlumnoApoderados() != null) {

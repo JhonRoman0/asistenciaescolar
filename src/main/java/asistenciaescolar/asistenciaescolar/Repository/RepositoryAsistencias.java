@@ -22,4 +22,15 @@ public interface RepositoryAsistencias extends JpaRepository<Asistencias,Integer
     // Para el reporte mensual/semanal
     List<Asistencias> findByFechaBetween(LocalDate inicio, LocalDate fin);
 
+    // Búsqueda general por rango de fechas ordenado cronológicamente
+    List<Asistencias> findByFechaBetweenOrderByFechaAscHoraEntradaAsc(LocalDate inicio, LocalDate fin);
+
+    // Historial de un alumno específico en un rango de fechas
+    List<Asistencias> findByAlumno_IdAlumnoAndFechaBetweenOrderByFechaAsc(Integer idAlumno, LocalDate inicio, LocalDate fin);
+
+    // Historial de registros de un usuario específico en un rango de fechas
+    List<Asistencias> findByUsuarioRegistro_IdUsuarioAndFechaBetweenOrderByFechaAsc(Integer idUsuario, LocalDate inicio, LocalDate fin);
+
+
+
 }
