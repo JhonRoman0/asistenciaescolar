@@ -14,6 +14,7 @@ public class DniData {
     @JsonProperty("apellido_materno")
     private String apellidoMaterno;
 
+
     @JsonProperty("numero")
     private String dni;
 }
