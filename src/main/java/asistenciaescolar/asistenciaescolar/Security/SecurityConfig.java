@@ -111,7 +111,7 @@ public class SecurityConfig{
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // 1. Origen específico requerido por 'credentials: true'
-        configuration.setAllowedOrigins(List.of("http://localhost:3000","http://192.168.56.102:3000","https://violate-diocese-antelope.ngrok-free.dev"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000","http://192.168.56.102:3000","https://violate-diocese-antelope.ngrok-free.dev","https://shy-perceive-safari.ngrok-free.dev/swagger-ui/index.html#/"));
         // 2. Métodos permitidos
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // 3. MODIFICADO: Lista explícita de cabeceras incluyendo la de ngrok
