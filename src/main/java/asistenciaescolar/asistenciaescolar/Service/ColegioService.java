@@ -64,10 +64,58 @@ public class ColegioService {
         return colegioGuardado;
     }
 
-    // LISTAR TODOS
+
+    // 1. OBTENER UN COLEGIO POR ID CON SU SHAPE COMPLETO (Va dentro de ColegioService)
     @Transactional
-    public List<Colegio> obtenerTodos() {
-        return repositoryColegio.findAll();
+    public dtoColegio obtenerPorIdConDetalle(Integer id) {
+        Colegio c = repositoryColegio.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Colegio no encontrado con el ID: " + id));
+
+        dtoColegio dto = new dtoColegio();
+        dto.setColegio(c.getColegio());
+        dto.setCodigo(c.getCodigo());
+        dto.setDireccion(c.getDireccion());
+        dto.setTelefono(c.getTelefono());
+        dto.setCelular(c.getCelular());
+        dto.setGmail(c.getGmail());
+
+        // A. Mapear y adjuntar los Turnos actuales
+        List<dtoTurno> listaTurnosDto = repositoryTurno.findAll().stream().map(t -> {
+            dtoTurno tDto = new dtoTurno();
+            tDto.setTurno(t.getTurno());
+            tDto.setHoraEntrada(t.getHoraEntrada());
+            tDto.setHoraEntradaLimite(t.getHoraEntradaLimite());
+            tDto.setHoraFaltaLimite(t.getHoraFaltaLimite());
+            return tDto;
+        }).toList();
+        dto.setTurnos(listaTurnosDto);
+
+        // B. Mapear y adjuntar la Configuración de Grados y Secciones
+        List<dtoGradoSeccionInput> listaGradosDto = repositoryGrado.findAll().stream().map(g -> {
+            dtoGradoSeccionInput gDto = new dtoGradoSeccionInput();
+            gDto.setGrado(g.getGrado());
+
+            // Filtrar las secciones asociadas a este grado específico en la tabla intermedia
+            List<String> nombresSecciones = repositoryGradoSeccion.findAll().stream()
+                    .filter(gs -> gs.getGrado().getIdGrado().equals(g.getIdGrado()))
+                    .map(gs -> gs.getSeccion().getSeccion())
+                    .toList();
+
+            gDto.setSecciones(nombresSecciones);
+            return gDto;
+        }).filter(gDto -> !gDto.getSecciones().isEmpty()).toList();
+
+        dto.setConfiguracionGrados(listaGradosDto);
+
+        return dto;
+    }
+
+    // 2. LISTAR TODOS CON DETALLE (Va dentro de ColegioService)
+    @Transactional
+    public List<dtoColegio> obtenerTodosConDetalle() {
+        return repositoryColegio.findAll().stream()
+                .map(c -> obtenerPorIdConDetalle(c.getIdColegio()))
+                .toList();
     }
 
     // BUSCAR POR ID

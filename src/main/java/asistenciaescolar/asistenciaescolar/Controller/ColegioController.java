@@ -23,16 +23,19 @@ public class ColegioController {
             return new ResponseEntity<>(nuevo, HttpStatus.CREATED);
     }
 
+    // RETORNA LA LISTA CON DETALLES (Shape completo)
     @GetMapping
-    public ResponseEntity<List<Colegio>> listar() {
-        return new ResponseEntity<>(colegioService.obtenerTodos(), HttpStatus.OK);
+    public ResponseEntity<List<dtoColegio>> listar() {
+        return new ResponseEntity<>(colegioService.obtenerTodosConDetalle(), HttpStatus.OK);
     }
 
+    // RETORNA EL COLEGIO POR ID CON DETALLES (Shape completo)
     @GetMapping("/{id}")
-    public ResponseEntity<Colegio> obtenerPorId(@PathVariable Integer id) {
-            Colegio col = colegioService.obtenerPorId(id);
-            return new ResponseEntity<>(col, HttpStatus.OK);
+    public ResponseEntity<dtoColegio> obtenerPorId(@PathVariable Integer id) {
+        dtoColegio dto = colegioService.obtenerPorIdConDetalle(id);
+        return new ResponseEntity<>(dto, HttpStatus.OK);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<Colegio> actualizar(@PathVariable Integer id, @RequestBody dtoColegio dto) {
