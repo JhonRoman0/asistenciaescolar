@@ -19,12 +19,6 @@ public class TurnoController {
 
     private final TurnoService turnoService;
 
-    @PostMapping
-    public ResponseEntity<Turno> crear(@RequestBody dtoTurno dto) {
-        // Deja fluir las excepciones de validación o lógica del Service directamente al frontend
-        Turno nuevoTurno = turnoService.crearTurno(dto);
-        return new ResponseEntity<>(nuevoTurno, HttpStatus.CREATED);
-    }
 
     @GetMapping
     public ResponseEntity<List<Turno>> listarTodos() {
@@ -38,10 +32,4 @@ public class TurnoController {
         return new ResponseEntity<>(turno, HttpStatus.OK);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Turno> actualizar(@PathVariable Integer id, @RequestBody dtoTurno dto) {
-        // Eliminado el catch redundante que alteraba los estados HTTP reales
-        Turno turnoActualizado = turnoService.actualizarTurno(id, dto);
-        return new ResponseEntity<>(turnoActualizado, HttpStatus.OK);
-    }
 }

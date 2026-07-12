@@ -17,6 +17,11 @@ public class ColegioController {
 
     private final ColegioService colegioService;
 
+    @PostMapping
+    public ResponseEntity<Colegio> crear(@RequestBody dtoColegio dto) {
+            Colegio nuevo = colegioService.registrarColegioYTurnos(dto);
+            return new ResponseEntity<>(nuevo, HttpStatus.CREATED);
+    }
 
     @GetMapping
     public ResponseEntity<List<Colegio>> listar() {
@@ -29,4 +34,9 @@ public class ColegioController {
             return new ResponseEntity<>(col, HttpStatus.OK);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Colegio> actualizar(@PathVariable Integer id, @RequestBody dtoColegio dto) {
+            Colegio actualizado = colegioService.actualizarColegioYTurnos(id, dto);
+            return new ResponseEntity<>(actualizado, HttpStatus.OK);
+    }
 }

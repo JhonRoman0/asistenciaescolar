@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +78,7 @@ public class ColegioService {
     }
 
     // 2. ACTUALIZAR COLEGIO, TURNOS Y RELACIONES GRADO-SECCIÓN
+
     @Transactional
     public Colegio actualizarColegioYTurnos(Integer id, dtoColegio dto) {
         Colegio colegioExistente = obtenerPorId(id);
@@ -90,12 +92,23 @@ public class ColegioService {
 
         Colegio colegioActualizado = repositoryColegio.save(colegioExistente);
 
-        // Limpieza y re-inserción de Turnos
-        repositoryTurno.deleteAll();
+        // 1. PROCESAR TURNOS SIN BORRAR TODO (Evita caídas si hay alumnos enlazados)
         if (dto.getTurnos() != null) {
             for (dtoTurno tDto : dto.getTurnos()) {
-                Turno turno = new Turno();
-                turno.setTurno(tDto.getTurno());
+                // Buscamos si el turno ya existe por nombre (Ignorando mayúsculas/minúsculas)
+                Optional<Turno> turnoExistenteOpt = repositoryTurno.findAll().stream()
+                        .filter(t -> t.getTurno().equalsIgnoreCase(tDto.getTurno().trim()))
+                        .findFirst();
+
+                Turno turno;
+                if (turnoExistenteOpt.isPresent()) {
+                    // Si ya existe, lo actualizamos conservando su ID original
+                    turno = turnoExistenteOpt.get();
+                } else {
+                    // Si es nuevo, lo instanciamos
+                    turno = new Turno();
+                    turno.setTurno(tDto.getTurno().trim());
+                }
                 turno.setHoraEntrada(tDto.getHoraEntrada());
                 turno.setHoraEntradaLimite(tDto.getHoraEntradaLimite());
                 turno.setHoraFaltaLimite(tDto.getHoraFaltaLimite());
@@ -103,10 +116,7 @@ public class ColegioService {
             }
         }
 
-        // Limpieza controlada de combinaciones previas antes de insertar la nueva configuración
-        repositoryGradoSeccion.deleteAll();
-
-        // Re-procesar las asignaciones directas enviadas
+        // 2. RE-PROCESAR GRADOS Y SECCIONES DE FORMA ADITIVA
         procesarGradosYSecciones(dto.getConfiguracionGrados());
 
         return colegioActualizado;
@@ -120,8 +130,6 @@ public class ColegioService {
             if (config.getGrado() == null || config.getGrado().trim().isEmpty()) continue;
 
             String nombreGradoLimpio = config.getGrado().trim();
-
-            // Buscar si ya existe el Grado de forma global para reusarlo, o crearlo.
             Grado grado = repositoryGrado.findAll().stream()
                     .filter(g -> g.getGrado().equalsIgnoreCase(nombreGradoLimpio))
                     .findFirst()
@@ -130,15 +138,10 @@ public class ColegioService {
                         nuevoG.setGrado(nombreGradoLimpio);
                         return repositoryGrado.save(nuevoG);
                     });
-
-            // Procesar solo las secciones que el Frontend le asignó a este grado en particular
             if (config.getSecciones() != null) {
                 for (String nomSeccion : config.getSecciones()) {
                     if (nomSeccion == null || nomSeccion.trim().isEmpty()) continue;
-
                     String nombreSeccionLimpio = nomSeccion.trim();
-
-                    // Buscar si la Sección existe de forma global, o crearla.
                     Seccion seccion = repositorySeccion.findAll().stream()
                             .filter(s -> s.getSeccion().equalsIgnoreCase(nombreSeccionLimpio))
                             .findFirst()
@@ -147,12 +150,15 @@ public class ColegioService {
                                 nuevaS.setSeccion(nombreSeccionLimpio);
                                 return repositorySeccion.save(nuevaS);
                             });
-
-                    // Vincular la combinación exacta en la tabla intermedia
-                    GradoSeccion gs = new GradoSeccion();
-                    gs.setGrado(grado);
-                    gs.setSeccion(seccion);
-                    repositoryGradoSeccion.save(gs);
+                    boolean yaExisteCombinacion = repositoryGradoSeccion.findAll().stream()
+                            .anyMatch(gs -> gs.getGrado().getIdGrado().equals(grado.getIdGrado()) &&
+                                    gs.getSeccion().getIdSeccion().equals(seccion.getIdSeccion()));
+                    if (!yaExisteCombinacion) {
+                        GradoSeccion gs = new GradoSeccion();
+                        gs.setGrado(grado);
+                        gs.setSeccion(seccion);
+                        repositoryGradoSeccion.save(gs);
+                    }
                 }
             }
         }
