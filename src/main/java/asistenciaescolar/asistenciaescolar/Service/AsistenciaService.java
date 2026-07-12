@@ -60,8 +60,7 @@ public class AsistenciaService {
         Estado estado = estadoRepository.findById(idEstadoCalculado)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Error en la configuración de estados."));
 
-        String nombreGrado = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getGrado().getGrado() : "Sin Grado";
-        String nombreSeccion = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getSeccion().getSeccion() : "Sin Sección";
+        Integer idGradoSeccionVal = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getIdGradoSeccion() : null;
 
         // Devolvemos los datos para que el Front pinte la foto y nombre del alumno
         return new dtoAsistenciaResponse(
@@ -70,8 +69,7 @@ public class AsistenciaService {
                 alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
                 alumno.getCodigoUnico(),                         // <-- Agregado
-                nombreGrado,  // <-- Modificado
-                nombreSeccion,                // <-- Ajusta según tu entidad Seccion
+                idGradoSeccionVal,                // <-- Ajusta según tu entidad Seccion
                 turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),
                 horaActual.toString()
@@ -135,8 +133,7 @@ public class AsistenciaService {
         // Disparamos la alerta asíncrona al padre
         notificacionService.enviarAlertaPadre(alumno, asistencia);
 
-        String nombreGrado = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getGrado().getGrado() : "Sin Grado";
-        String nombreSeccion = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getSeccion().getSeccion() : "Sin Sección";
+        Integer idGradoSeccionVal = (alumno.getGradoSeccion() != null) ? alumno.getGradoSeccion().getIdGradoSeccion() : null;
 
         return new dtoAsistenciaResponse(
                 alumno.getNombre(),
@@ -144,8 +141,7 @@ public class AsistenciaService {
                 alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
                 alumno.getCodigoUnico(),                         // <-- Agregado
-                nombreGrado,  // <-- Modificado
-                nombreSeccion,                // <-- Ajusta según tu entidad Seccion
+                idGradoSeccionVal,
                 turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),
                 horaActual.toString()
@@ -167,6 +163,7 @@ public class AsistenciaService {
             Map<String, Object> fila = new LinkedHashMap<>();
             fila.put("idAlumno", alumno.getIdAlumno());
             fila.put("nombreCompleto", alumno.getNombre() + " " + alumno.getApellidoPaterno());
+            fila.put("idGradoSeccion", alumno.getGradoSeccion() != null ? alumno.getGradoSeccion().getIdGradoSeccion() : null);
 
             Optional<Asistencias> asistenciaHoy = asistenciaRepository.findByAlumnoAndFecha(alumno, hoy);
 

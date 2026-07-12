@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.time.LocalDate;
@@ -9,6 +10,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class dtoReporteAlumno {
     private LocalDate fecha;
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime horaEntrada;
     private String estado;
     private String justificacion;

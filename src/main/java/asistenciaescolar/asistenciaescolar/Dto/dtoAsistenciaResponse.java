@@ -1,5 +1,6 @@
 package asistenciaescolar.asistenciaescolar.Dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,10 +13,10 @@ public class dtoAsistenciaResponse {
     private String apellidoPaterno;
     private String apellidoMaterno;
     private String rutaFoto;
-    private String codigoUnico;     // NUEVO
-    private String grado;           // NUEVO
-    private String seccion;         // NUEVO
+    private String codigoUnico;
+    private Integer idGradoSeccion;
     private String turno;
     private String estado;
+    @JsonFormat(pattern = "HH:mm:ss")
     private String horaRegistro;
 }
