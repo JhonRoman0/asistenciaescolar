@@ -6,6 +6,7 @@ import java.util.List;
 
 @Data
 public class dtoColegio {
+    private Integer idColegio;
     private String colegio;
     private String codigo;
     private String direccion;

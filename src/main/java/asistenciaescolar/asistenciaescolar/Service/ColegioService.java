@@ -64,7 +64,6 @@ public class ColegioService {
         return colegioGuardado;
     }
 
-
     // 1. OBTENER UN COLEGIO POR ID CON SU SHAPE COMPLETO (Va dentro de ColegioService)
     @Transactional
     public dtoColegio obtenerPorIdConDetalle(Integer id) {
@@ -72,6 +71,7 @@ public class ColegioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Colegio no encontrado con el ID: " + id));
 
         dtoColegio dto = new dtoColegio();
+        dto.setIdColegio(c.getIdColegio());
         dto.setColegio(c.getColegio());
         dto.setCodigo(c.getCodigo());
         dto.setDireccion(c.getDireccion());
