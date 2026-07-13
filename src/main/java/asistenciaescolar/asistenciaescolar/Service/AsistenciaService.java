@@ -68,7 +68,8 @@ public class AsistenciaService {
                 alumno.getApellidoPaterno(),
                 alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
-                alumno.getCodigoUnico(),                         // <-- Agregado
+                alumno.getCodigoUnico(),
+                alumno.getCodigoHash(),
                 idGradoSeccionVal,                // <-- Ajusta según tu entidad Seccion
                 turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),
@@ -140,7 +141,8 @@ public class AsistenciaService {
                 alumno.getApellidoPaterno(),
                 alumno.getApellidoMaterno(),                     // <-- Agregado
                 alumno.getRutaFoto(),
-                alumno.getCodigoUnico(),                         // <-- Agregado
+                alumno.getCodigoUnico(),
+                alumno.getCodigoHash(), // <-- Agregado
                 idGradoSeccionVal,
                 turno.getTurno(),                                // <-- Agregado
                 estado.getEstado(),

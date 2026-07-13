@@ -14,6 +14,7 @@ public class dtoAsistenciaResponse {
     private String apellidoMaterno;
     private String rutaFoto;
     private String codigoUnico;
+    private String codigoHash;
     private Integer idGradoSeccion;
     private String turno;
     private String estado;
