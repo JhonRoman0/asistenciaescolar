@@ -285,8 +285,8 @@ public class AsistenciaService {
         long universoTotalEsperado = totalAlumnosActivos * diasRango;
 
         long puntuales = registros.stream().filter(a -> a.getEstado().getIdEstado() == 1).count();
-        long tardanzas = registros.stream().filter(a -> a.getEstado().getIdEstado() == 3).count();
-        long justificados = registros.stream().filter(a -> a.getEstado().getIdEstado() == 4).count();
+        long tardanzas = registros.stream().filter(a -> a.getEstado().getIdEstado() == 2).count();
+        long justificados = registros.stream().filter(a -> a.getEstado().getIdEstado() == 3).count();
 
         // Inasistencias reales calculadas matemáticamente
         long totalPresentes = registros.size();
