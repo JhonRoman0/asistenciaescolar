@@ -116,7 +116,7 @@ public class AsistenciaService {
         // =========================================================================
         // CAMBIO AQUÍ: Controlar dinámicamente la justificación
         // =========================================================================
-        if (idEstadoCalculado == 4) {
+        if (idEstadoCalculado == 3) {
             if (request.getIdJustificacion() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar un motivo de justificación para registrar el ingreso.");
             }
