@@ -60,11 +60,6 @@ public class AlumnoController {
         return ResponseEntity.ok(alumnoService.actualizarAlumno(id, dto, foto));
     }
 
-    @GetMapping("/grados-secciones")
-    @Operation(summary = "Listar combinaciones de Grados y Secciones asignadas")
-    public ResponseEntity<List<GradoSeccion>> obtenerGradosSecciones() {
-        return ResponseEntity.ok(alumnoService.listarGradosSecciones());
-    }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar alumnos de manera logica")
