@@ -353,10 +353,10 @@ public class AsistenciaService {
             return 1; // Puntual
         } else if (horaActual.isAfter(turno.getHoraEntrada()) &&
                 (horaActual.isBefore(turno.getHoraEntradaLimite()) || horaActual.equals(turno.getHoraEntradaLimite()))) {
-            return 3; // Tardanza
+            return 2; // Tardanza
         } else if (horaActual.isAfter(turno.getHoraEntradaLimite()) &&
                 (horaActual.isBefore(turno.getHoraFaltaLimite()) || horaActual.equals(turno.getHoraFaltaLimite()))) {
-            return 4; // Asistencia Justificada
+            return 3; // Asistencia Justificada
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registro denegado: El límite de ingreso ha expirado. Es Inasistencia.");
         }
