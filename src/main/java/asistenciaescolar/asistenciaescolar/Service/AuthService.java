@@ -51,6 +51,11 @@ public class AuthService {
         Usuario usuario = repositoryUsuario.findByCodigUsuario(loginRequest.getCodigUsuario())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
 
+        // VALIDACIÓN: ¿El usuario está activo? (Suponiendo que tienes getEstado() en tu entidad Usuario)
+        if (usuario.getEstado() != 1) { // O usuario.getActivo() == false
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "El usuario se encuentra inactivo");
+        }
+
         // 5. Construcción estructurada del DTO utilizando Builder de Lombok (libre de recursión)
         List<LoginResponse.RolInfo> roles = usuario.getUsuarioRoles().stream()
                 .filter(ur -> ur.getRol().getEstado() == 1)
@@ -91,6 +96,10 @@ public class AuthService {
     public LoginResponse obtenerRespuestaPorCodigo(String codigUsuario) {
         Usuario usuario = repositoryUsuario.findByCodigUsuario(codigUsuario)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+        if (usuario.getEstado() != 1) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "El usuario se encuentra inactivo");
+        }
 
         List<LoginResponse.RolInfo> roles = usuario.getUsuarioRoles().stream()
                 .filter(ur -> ur.getRol().getEstado() == 1)
