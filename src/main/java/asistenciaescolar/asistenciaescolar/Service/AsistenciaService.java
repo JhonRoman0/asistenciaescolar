@@ -315,7 +315,7 @@ public class AsistenciaService {
         Usuario admin = usuarioRepository.findById(idUsuarioAdmin)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario administrador no existe."));
 
-        Estado estadoJustificado = estadoRepository.findById(4)
+        Estado estadoJustificado = estadoRepository.findById(3)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Configuración de estados rota."));
 
         asistencia.setEstado(estadoJustificado);
