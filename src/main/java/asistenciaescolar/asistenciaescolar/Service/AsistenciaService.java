@@ -240,7 +240,7 @@ public class AsistenciaService {
 
             // Consideramos "Asistió" a Puntual(1), Tardanza(3) y Justificada(4)
             long asistenciasRegistradas = susAsistencias.stream()
-                    .filter(a -> Arrays.asList(1, 3, 4).contains(a.getEstado().getIdEstado()))
+                    .filter(a -> Arrays.asList(1, 2, 3).contains(a.getEstado().getIdEstado()))
                     .count();
 
             long inasistencias = totalDias - asistenciasRegistradas;
