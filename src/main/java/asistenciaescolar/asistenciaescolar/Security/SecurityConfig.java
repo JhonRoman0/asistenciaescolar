@@ -93,7 +93,7 @@ public class SecurityConfig{
                         .requestMatchers(HttpMethod.GET, "/api/asistencias/**").permitAll()
 
                         // 10. NUEVO: Endpoints de Reportes
-                        .requestMatchers(HttpMethod.GET, "/api/reportes/**").hasRole("Administrador")
+                        .requestMatchers(HttpMethod.GET, "/api/reportes/**").hasAnyRole("Administrador", "Secretario")
 
                         .anyRequest().authenticated()
                 );
